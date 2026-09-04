@@ -946,6 +946,10 @@ const IND=[
    d:'Siniestros con participación de bicicleta ocurridos dentro de la zona (CONASET). Es un conteo, no una tasa: las zonas más pobladas o más transitadas acumulan más sin que eso signifique mayor riesgo por viaje.'},
   {k:'nse',t:'Nivel socioeconómico de la zona',s:'',inv:false,
    d:'Índice de 0 a 100 por zona censal. Es un atributo del territorio, no de las personas que viven en él.'},
+  {k:'egen',t:'Viajes en bicicleta generados (EOD)',s:'',inv:false,
+   d:'Viajes diarios en bicicleta que salen de la zona según la Encuesta Origen-Destino, llevados de la zonificacion EOD a la censal repartiendo en proporción a la población de cada trozo. Sólo hay dato en las 15 ciudades con EOD; el resto queda sin dato.'},
+  {k:'eatr',t:'Viajes en bicicleta atraídos (EOD)',s:'',inv:false,
+   d:'Viajes diarios en bicicleta que llegan a la zona. Comparado con los generados, distingue los barrios que producen viajes de los que los reciben: los polos de empleo y estudio atraen más de lo que generan.'},
   {k:'pob',t:'Población',s:'',inv:false,
    d:'Habitantes de la zona censal según el Censo 2024. Sirve de contexto para leer los demás indicadores.'},
 ];
@@ -1174,6 +1178,9 @@ function panelDetalle(){
       +fila('Escolares residentes',fmt(z.esc))
       +fila('Siniestros con ciclista',fmt(z.sini))
       +(z.sinf?fila('Con resultado de muerte',fmt(z.sinf)):'')
+      +(z.egen!=null?fila('Viajes en bici generados (EOD)',fmt(z.egen)):'')
+      +(z.eatr!=null?fila('Viajes en bici atraídos (EOD)',fmt(z.eatr)):'')
+      +(z.eciu?'<div class="sub" style="margin-top:6px">Fuente EOD: '+z.eciu+'</div>':'')
       +((z.bp>3.8&&z.d>600)?'<div class="nota">Zona con uso de bicicleta sobre el promedio nacional y sin red cerca: demanda que ya existe sin infraestructura que la acompa\u00f1e.</div>':'');
     return;
   }

@@ -304,6 +304,9 @@ def main():
         "esc": nn(r.escolares, 0),
         "sini": nn(getattr(r, "sin_bici", None), 0),
         "sinf": nn(getattr(r, "sin_fall", None), 0),
+        "egen": nn(getattr(r, "eod_bici_gen", None), 0),
+        "eatr": nn(getattr(r, "eod_bici_atr", None), 0),
+        "eciu": (str(getattr(r, "eod_ciudad", "") or "") or None),
         "g": coords_poli(r.geometry),
     } for r in gz.itertuples()]
     D["zonas"] = [z for z in D["zonas"] if z["g"]]

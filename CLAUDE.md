@@ -245,4 +245,18 @@ Todos de la misma familia: **fallas que no lanzan error**.
   capa. La zona censal promedia manzanas y esconde justamente lo que el umbral
   quiere mostrar; la geometria lo muestra tal cual.
 
+- `[banco]` 2026-09-04 — **La EOD si se puede llevar a la zonificacion censal**,
+  y ese es el techo metodologico correcto. En la base homologada el hogar NO
+  trae coordenada —la geografia mas fina es la zona EOD— pero existen los
+  poligonos de zona de 20 ciudades en `EODs/EOD-Chile/data/geojson`. El cruce
+  reparte los viajes en proporcion a la POBLACION de cada trozo y no a su area:
+  repartir por area supone gente distribuida pareja y en una zona que mezcla
+  barrio denso con paño agricola manda viajes al potrero. Conserva el 97,8 % de
+  los viajes; el resto son zonas EOD sin contraparte censal. Aunque el hogar
+  trajera coordenada, desagregar bajo la zona daria precision falsa: los
+  factores de expansion estan calibrados a nivel de zona.
+- `[banco]` 2026-09-04 — Varias zonificaciones EOD traen **poligonos invalidos**
+  y cualquier operacion de conjunto revienta con `TopologyException`. Reparar
+  con `make_valid()` antes de intersectar; no altera la extension.
+
 <!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=pendiente -->
