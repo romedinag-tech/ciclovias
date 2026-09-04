@@ -16,14 +16,22 @@ El visor no tiene fuentes propias: consume lo que produce el banco.
 
 ## Estado
 
-Última actividad: 2026-09-04 (`c9b5ff9`).
+Última actividad: 2026-09-04 (`b307d51`).
 
 ### banco
 
-Operativo y completo en su primera vuelta. 17 capas descargadas (63.925
-registros, 0 fallos), normalizadas a un panel de cuatro cortes, más cinco
-análisis: cobertura poblacional, accesibilidad a equipamiento educacional,
-conectividad de red, demanda y agregación a zona censal.
+Operativo. 17 capas descargadas (63.925 registros, 0 fallos), normalizadas a un
+panel de cuatro cortes, más **ocho scripts de análisis y cruce** que producen 17
+salidas: cobertura poblacional, accesibilidad a equipamiento educacional,
+conectividad de red, demanda censal y de la EOD con sus cruces por sexo, edad,
+quintil, propósito y hora, distribución de distancias, KPI por ciudad,
+agregación a zona censal y el cruce de la EOD a esa zonificación.
+
+Documentado en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md), que es la fase 0 del
+dominio: inventario, cobertura medida año a año y unidad por unidad, nulos por
+campo y por región, nueve trampas demostradas ejecutando, contraste de
+referencia sobre el Gran Concepción e indicadores ya calculados, separando los
+publicados y estables de las recetas re-ejecutables.
 
 Sin resolver, y anotado como tal: el pico de **714,9 km declarados con año de
 ejecución 2017**, muy por encima de cualquier otro año, no está confirmado con
@@ -34,7 +42,13 @@ tramos de fecha desconocida.
 
 Publicado en <https://romedinag-tech.github.io/ciclovias/>, tres secciones
 —infraestructura, demanda, espacial— con tema claro/oscuro y paleta para
-daltonismo. Un solo `index.html` de 6,9 MB con el payload incrustado.
+daltonismo. Un solo `index.html` de 7,7 MB con el payload incrustado.
+
+El mapa trabaja sobre **zona censal** —la comuna resultó demasiado gruesa para
+ver diferencias dentro de una ciudad— con siete capas: red existente, franja de
+300 m, cartera futura, contadores, siniestros con ciclista, su concentración y
+equipamiento educacional. Cada gráfico se amplía y se descarga como PNG, y el
+mapa se exporta como **figura de informe con su leyenda compuesta**.
 
 ## Entradas y salidas
 
@@ -43,15 +57,23 @@ daltonismo. Un solo `index.html` de 6,9 MB con el payload incrustado.
 Pipeline, en este orden:
 
 ```bash
-python -X utf8 scripts/descarga_arcgis.py      # ArcGIS REST -> data/raw + data/parquet
-python -X utf8 scripts/normaliza.py            # -> catastro_panel, catastro_comuna
-python -X utf8 scripts/analisis_cobertura.py   # distancia manzana/establecimiento a la red
-python -X utf8 scripts/analisis_conectividad.py# componentes conexas + sensibilidad
-python -X utf8 scripts/analisis_demanda.py     # Censo + EOD + contadores + siniestros
-python -X utf8 scripts/analisis_zonas.py       # agrega a zona censal
-python -X utf8 scripts/genera_catalogo.py      # MANIFIESTO.json -> FUENTES.md
-python -X utf8 scripts/genera_analisis.py      # data/analisis -> ANALISIS.md
+python -X utf8 scripts/descarga_arcgis.py       # ArcGIS REST -> data/raw + data/parquet
+python -X utf8 scripts/normaliza.py             # -> catastro_panel, catastro_comuna
+python -X utf8 scripts/analisis_cobertura.py    # distancia manzana/establecimiento a la red
+python -X utf8 scripts/analisis_conectividad.py # componentes conexas + sensibilidad
+python -X utf8 scripts/analisis_demanda.py      # Censo + EOD + contadores + siniestros
+python -X utf8 scripts/analisis_eod_cruces.py   # bicicleta por sexo, edad, quintil, hora x propósito
+python -X utf8 scripts/analisis_eod_distancias.py  # distribución de distancias por ciudad
+python -X utf8 scripts/analisis_eod_kpi.py      # KPI por ciudad, con tiempo y distancia propios
+python -X utf8 scripts/analisis_zonas.py        # agrega a zona censal
+python -X utf8 scripts/cruza_eod_zonas_censales.py # EOD -> zonificación censal
+python -X utf8 scripts/genera_catalogo.py       # MANIFIESTO.json -> FUENTES.md
+python -X utf8 scripts/genera_analisis.py       # data/analisis -> ANALISIS.md
 ```
+
+El orden importa en dos puntos: `analisis_eod_kpi.py` lee el resumen que produce
+`analisis_eod_distancias.py`, y `cruza_eod_zonas_censales.py` escribe sobre el
+`zona_demanda` que produce `analisis_zonas.py`.
 
 `scripts/fuentes.py` es el registro declarativo de qué se baja y de dónde; es el
 único archivo que se edita para agregar una capa.
@@ -73,7 +95,7 @@ Dos pasos, deliberadamente separados: el payload tarda minutos y la maqueta se
 itera decenas de veces.
 
 ```bash
-python -X utf8 scripts/prepara_payload.py      # -> _work/payload.json (6,8 MB)
+python -X utf8 scripts/prepara_payload.py      # -> _work/payload.json (7,2 MB)
 python -X utf8 scripts/genera_visor.py         # -> index.html
 ```
 
@@ -89,31 +111,32 @@ crudo) queda fuera de git y se regenera con el descargador. `data/MANIFIESTO.jso
 es la traza de la descarga: conteos, campos y problemas detectados.
 
 **Tabla canónica: `data/parquet/catastro_panel.parquet`.** Los cuatro cortes con
-campos homogeneizados. Filtrar `etapa == 'existentes'` para hablar de red
-construida: de 7.064,1 km catastrados sólo **2.827,7 km** existen.
+campos homogeneizados. Para hablar de red hay que filtrar **los dos** ejes:
+`corte` —si no, se suman las cuatro versiones y salen 10.356,9 km de red
+existente— y `etapa`. En el corte vigente (2026-07), de 7.064,1 km catastrados
+sólo **2.827,7 km** existen.
 
 **`data/analisis/` es un contrato, no archivos de trabajo.** La skill
-`diag-ciclovias` lo consume. Son trece salidas: `manzana_cobertura`,
-`cobertura_comuna`, `equipamiento_cobertura`, `conectividad_comuna`,
-`conectividad_sensibilidad`, `componentes`, `tramo_componente`, `zona_demanda`,
-`demanda_comuna`, `demanda_eod_ciudad`, `demanda_eod_perfil`, `demanda_eod_zona`
-y `siniestros_bici`. Renombrar o borrar una columna rompe la skill sin previo
-aviso; agregar columnas es seguro.
+`diag-ciclovias` lo consume. Son **17 salidas**: las trece de cobertura,
+conectividad y demanda —`manzana_cobertura`, `cobertura_comuna`,
+`equipamiento_cobertura`, `conectividad_comuna`, `conectividad_sensibilidad`,
+`componentes`, `tramo_componente`, `zona_demanda`, `demanda_comuna`,
+`demanda_eod_ciudad`, `demanda_eod_perfil`, `demanda_eod_zona` y
+`siniestros_bici`— más las cuatro de la EOD: `eod_cruces`, `eod_distancias`,
+`eod_distancias_resumen` y `eod_kpi`. Renombrar o borrar una columna rompe la
+skill sin previo aviso; agregar columnas es seguro.
 
-Trampas de las fuentes, ya verificadas:
+**Las trampas de las fuentes viven en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md)**,
+donde cada una está demostrada con el resultado de la consulta que la delata:
+`CUT_COM` sin relleno de ceros, `CUT_REG` que contradice a la comuna, el
+pseudo-valor `s_i`, `smp` como senda multipropósito, el `KM` declarado contra la
+geometría y la serie de cortes que no mide construcción. Esa ficha es la fase 0
+del dominio y se lee antes de consultar el banco.
 
-- **`CUT_COM` sin relleno de ceros** en las regiones 1 a 9 (2.496 de 4.850
-  registros). `zfill(5)` antes de cualquier cruce.
-- **`CUT_REG` no es confiable**: 29 registros del panel declaran una región que
-  no corresponde a su comuna. La región se **deriva** del `CUT_COM` y la
-  discrepancia queda marcada en `cut_reg_declarado_discrepa`.
-- **`minvu_contadores.COMUNA` trae el código CUT, no el nombre.**
-- El servicio `CICLOV_validVisor_WFL1` publica **dos** capas de red; la vigente
-  es la 0. **No sumarlas.**
-- Los nombres de campo cambian entre cortes (`EMPLAZA_TEX`/`EMPLAZA_TE`,
-  `NOM_PROYECTO`/`NOMBRE_PRO`, `FECHA_EJECUCION`/`YEAR_EJECU`). Mapear explícito.
-- `objectIdField` varía por capa (`OBJECTID`, `FID`, `OBJECTID_12`); se lee del
-  metadato.
+Dos que no están allá porque son de la descarga y no del dato: el servicio
+`CICLOV_validVisor_WFL1` publica **dos** capas de red y la vigente es la 0
+—**no sumarlas**—, y `objectIdField` varía por capa (`OBJECTID`, `FID`,
+`OBJECTID_12`), de modo que se lee del metadato y no se asume.
 
 Lo que **no** se guarda acá: la geometría comunal (las cinco capas ICC repiten
 los mismos polígonos, ~120 MB duplicados; se bajan con `solo_atributos=True`) y
@@ -140,15 +163,8 @@ no su motor.
 
 Todos de la misma familia: **fallas que no lanzan error**.
 
-- `[banco]` 2026-09-04 — **ArcGIS responde `404`, no `414`, cuando la URL es
-  demasiado larga.** Con bloques de 400 OBJECTID la query string excede el
-  límite y el error se lee como «la capa no existe». Las consultas por bloque van
-  por **POST**. Costó un diagnóstico falso: las capas chicas pasaban en un bloque
-  y sólo fallaba el catastro, que es el dato central.
-- `[banco]` 2026-09-04 — **La serie de cortes no mide construcción.** El salto de
-  441,1 km entre nov-2024 y jul-2025 es mejora de catastro: sólo 18,6 km declaran
-  ejecución 2025 o posterior. La construcción anual se lee de `year_ejecucion`
-  dentro de un corte, nunca restando versiones.
+- `[banco]` 2026-09-04 — **ArcGIS responde `404`, no `414`, con una URL demasiado larga**, y el error se lee como «la capa no existe». Las consultas por bloque de OBJECTID van por **POST**.
+- `[banco]` 2026-09-04 — La serie de cortes **no mide construcción**: el salto entre versiones es mejora de catastro. Medido y demostrado en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md), trampa 7.
 - `[banco]` 2026-09-04 — **El grafo de conectividad debe unir geometrías, no
   extremos.** El 37,0 % de los extremos coincide con otro extremo, pero un
   11,9 % cae sobre el *interior* de otro tramo (empalmes en T). Ignorarlos daba
@@ -181,11 +197,7 @@ Todos de la misma familia: **fallas que no lanzan error**.
   pospone si el contenedor aún no tiene tamaño (lo resuelve un `ResizeObserver`
   sobre el contenedor: el `resize` de window llega antes de que el layout
   asiente).
-- `[visor]` 2026-09-04 — **Las teselas de `basemaps.cartocdn.com` vuelven con
-  HTTP 200 y la marca «API KEY REQUIRED» encima.** Ningún chequeo estructural lo
-  detecta. Se usan los lienzos claro/oscuro de Esri, sin clave. Alcanza a
-  `_dashboard_kit/plantilla.html` y a los dashboards copiados de ella; **pendiente
-  decidir si se corrige el estándar**, porque afecta a todos.
+- `[visor]` 2026-09-04 — **Las teselas de `basemaps.cartocdn.com` vuelven con HTTP 200 y la marca «API KEY REQUIRED» encima.** Ningún chequeo estructural lo detecta. Acá se usan los lienzos claro/oscuro de Esri, sin clave. **Cerrado el 2026-09-04: se decidió no modificar el estándar compartido** `_dashboard_kit/plantilla.html`, de modo que los dashboards copiados de ella —`antofagasta`, `comercio exterior`, los de Rapa Nui, `EODs` y Costanera Mar— siguen sirviendo teselas con marca de agua hasta que se decida lo contrario.
 - `[visor]` 2026-09-04 — **Un mapa se verifica midiendo el render.** El criterio
   usado acá es `getBoundingClientRect` del contenedor más el conteo de píxeles
   con alfa > 0 en el canvas, sirviendo por HTTP. Contar nodos del DOM no distingue
@@ -198,12 +210,7 @@ Todos de la misma familia: **fallas que no lanzan error**.
   y cero en el segundo, y la curva horaria sale vacia sin que nada falle: asi
   estuvo el grafico de Demanda hasta detectarlo. Normalizar con
   `hora_del_viaje()` en `analisis_demanda.py`.
-- `[banco]` 2026-09-04 — **`smp` es «senda multiproposito»**, la infraestructura
-  del MOP en la berma de una ruta rural. El servicio no lo declara: se dedujo
-  del propio catastro, donde los nombres de proyecto de esos tramos dicen
-  «construccion de sendas multiproposito en red vial», 372 de 421 son cartera
-  MOP, 343 son rurales y 324 van por berma. Antes estaba glosado a ojo como
-  «servicio de movilidad particular», que era invencion.
+- `[banco]` 2026-09-04 — **`smp` es «senda multipropósito»** (MOP, berma de ruta rural). No está declarado en el servicio; la evidencia que lo deduce está en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md), trampa 4.
 - `[banco]` 2026-09-04 — `viajes_analiticos.parquet` reproduce **exactamente** la
   reconstruccion de bicicleta hecha sobre los archivos por ciudad (r = 1,00000,
   diferencia media 0,0000 pp en 15 ciudades). Por eso los cruces por edad, sexo
@@ -294,9 +301,16 @@ Todos de la misma familia: **fallas que no lanzan error**.
   `opt()` y el visor entero quedaba en blanco; en el navegador eso aparece como
   un `SyntaxError` sin linea util, mientras que la comprobacion previa cuesta
   un segundo.
-- `[visor]` 2026-09-04 — **Una casilla de capa que nunca tiene datos es peor que
-  no tenerla.** Las mediciones SECTRA solo existen en Antofagasta y Talca, de
-  modo que su control se esconde cuando el territorio filtrado no tiene ninguna,
-  en vez de ofrecer un interruptor que no hace nada.
+- `[banco]` 2026-09-04 — **Las trampas de las fuentes se documentan una sola vez**,
+  en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md), que las demuestra con la consulta que
+  las delata. Este archivo las referencia y no las repite: tenerlas en dos lugares
+  garantiza que una de las dos versiones envejezca sin que nadie lo note.
 
-<!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=pendiente -->
+### Archivo
+
+- `[visor]` 2026-09-04 — Una casilla de capa que nunca tiene datos es peor que no
+  tenerla: la de mediciones SECTRA se escondía cuando el territorio no tenía
+  ninguna. Obsoleto desde el mismo día: **la capa se eliminó del visor**. El dato
+  sigue en el banco y en la ficha de dominio.
+
+<!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=b307d51 -->
