@@ -293,32 +293,6 @@ def main():
         "ll": [round(r.geometry.y, DEC), round(r.geometry.x, DEC)],
     } for r in ct.itertuples() if r.geometry is not None]
 
-    # Mediciones SECTRA por punto de control. Es la unica fuente con reparto
-    # DENTRO del dia asociado a un punto concreto: fuera de punta, punta mañana
-    # y punta tarde. Los contadores MINVU solo publican agregados diarios.
-    med = gpd.read_parquet(PQ / "sectra_mediciones_antofagasta_talca.parquet")
-    # La comuna de la medicion viene por NOMBRE; se resuelve a cut_com contra
-    # el propio diccionario de comunas para que la capa pueda filtrarse por
-    # territorio como todas las demas.
-    import unicodedata as _ud
-
-    def _k(x):
-        x = _ud.normalize("NFD", str(x)).encode("ascii", "ignore").decode()
-        return "".join(c for c in x.upper() if c.isalnum())
-
-    _cut_por_nombre = {_k(v.get("nom") or ""): c for c, v in D["comunas"].items()}
-
-    D["mediciones"] = [{
-        "pc": int(r.PC) if pd.notna(r.PC) else None,
-        "com": str(r.Comuna or ""),
-        "c": _cut_por_nombre.get(_k(r.Comuna), ""),
-        "fp": nn(r.FP, 0), "pm": nn(r.PM, 0), "pt": nn(r.PT, 0),
-        "tot": nn(r.Tot_cicl, 0),
-        "exp": nn(r.expan_ciclos, 0), "expv": nn(r.expan_veh, 0),
-        "prop": nn(r.propor_, 3),
-        "ll": [round(r.geometry.y, DEC), round(r.geometry.x, DEC)],
-    } for r in med.itertuples() if r.geometry is not None]
-
     # ------------------------------------------------------------------ #
     # 4. ESPACIAL
     # ------------------------------------------------------------------ #

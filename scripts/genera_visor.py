@@ -455,7 +455,6 @@ body.mapafull #detalle{height:calc(100vh - 250px)}
       <label><input type="checkbox" id="lFranja"> Franja de 300 m</label>
       <label><input type="checkbox" id="lPlan" checked> Cartera futura</label>
       <label><input type="checkbox" id="lCont" checked> Contadores de flujo</label>
-      <label><input type="checkbox" id="lMed"> Mediciones SECTRA</label>
       <label><input type="checkbox" id="lSin"> Siniestros con ciclista</label>
       <label><input type="checkbox" id="lHeat"> Concentración de siniestros</label>
       <label><input type="checkbox" id="lEq"> Colegios y educación superior</label>
@@ -1124,7 +1123,7 @@ const IND=[
 ];
 const PAL=()=>[cssv('--u1'),cssv('--u2'),cssv('--u3'),cssv('--u4'),cssv('--u5'),cssv('--u6'),cssv('--u7')];
 let map,capaZona,cortes=[],indAct=IND[0],baseAct,bases,coroVisible=true,sel=null;
-let cRed,cPlan,cCont,cSin,cHeat,cEq,cMed,cFranja,pendienteEncuadre=false;
+let cRed,cPlan,cCont,cSin,cHeat,cEq,cFranja,pendienteEncuadre=false;
 
 // El fondo neutro sigue al tema: un lienzo claro bajo la interfaz oscura
 // desentona y ademas hace ilegible la coropleta. Esri publica las dos
@@ -1164,7 +1163,7 @@ function initMapa(){
     coroVisible=(c==='on'); pintaPoli();
   };
   cRed=L.layerGroup().addTo(map); cPlan=L.layerGroup().addTo(map);
-  cCont=L.layerGroup().addTo(map); cSin=L.layerGroup(); cEq=L.layerGroup(); cMed=L.layerGroup();
+  cCont=L.layerGroup().addTo(map); cSin=L.layerGroup(); cEq=L.layerGroup();
   // Franja real de 300 m: es el umbral del indicador de cobertura dibujado
   // como geometria, en vez de promediado dentro de una zona censal.
   cFranja=L.layerGroup();
@@ -1174,8 +1173,8 @@ function initMapa(){
   dibujaRed(); dibujaPuntos();
   const bind=(id,capa)=>document.getElementById(id).onchange=ev=>
     ev.target.checked?map.addLayer(capa):map.removeLayer(capa);
-  ['lRed','lPlan','lCont','lMed','lSin','lEq','lFranja'].forEach((id,i)=>
-    bind(id,[cRed,cPlan,cCont,cMed,cSin,cEq,cFranja][i]));
+  ['lRed','lPlan','lCont','lSin','lEq','lFranja'].forEach((id,i)=>
+    bind(id,[cRed,cPlan,cCont,cSin,cEq,cFranja][i]));
   document.getElementById('lHeat').onchange=ev=>{
     if(cHeat){map.removeLayer(cHeat);cHeat=null;}
     if(ev.target.checked){
@@ -1233,7 +1232,6 @@ function leyenda(){
   ETAPAS.forEach((e,i)=>h+='<span class="swl" style="background:'+cssv('--e'+i)+'"></span>'+e);
   h+='</div><div class="grp"><span class="ttl">Puntos</span>'
    +'<span class="swd" style="background:'+cssv('--c-cont')+'"></span>contador (tama\u00f1o = media diaria)'
-   +'<span class="swd" style="background:'+cssv('--div-pos')+'"></span>medici\u00f3n SECTRA'
    +'<span class="swd" style="background:'+cssv('--c-sin')+'"></span>siniestro con ciclista'
    +'<span class="swd" style="background:'+cssv('--c-ok')+'"></span>colegio o sede a menos de 300 m</div>'
    +'<div class="grp"><span class="ttl">Franja</span><span class="sw" style="background:'
@@ -1261,16 +1259,7 @@ function dibujaRed(){
       dst.addLayer(ln);});});
 }
 function dibujaPuntos(){
-  cCont.clearLayers(); cSin.clearLayers(); cEq.clearLayers(); cMed.clearLayers();
-  // Las mediciones SECTRA solo existen en Antofagasta y Talca. En cualquier
-  // otro territorio la capa queda vacia y su casilla no significa nada, asi
-  // que se esconde en vez de ofrecer un control que no hace nada.
-  const hayMed=(D.mediciones||[]).some(m=>!m.c||enFiltro(m.c));
-  const lm=document.getElementById('lMed');
-  if(lm&&lm.parentElement){
-    lm.parentElement.style.display=hayMed?'':'none';
-    if(!hayMed&&lm.checked){lm.checked=false;if(map&&map.hasLayer(cMed))map.removeLayer(cMed);}
-  }
+  cCont.clearLayers(); cSin.clearLayers(); cEq.clearLayers();
   D.contadores.forEach(c=>{ if(!enFiltro(c.c))return;
     const r=c.m?Math.max(5,Math.min(17,Math.sqrt(c.m)*.68)):5;
     L.circleMarker(c.ll,{pane:'pPtos',radius:r,color:'#0f766e',weight:1.4,
@@ -1278,14 +1267,6 @@ function dibujaPuntos(){
       .bindTooltip('<b>'+c.n+'</b><br>'+fmt(c.m,1)+' pasadas/d\u00eda \u00b7 clic para el detalle',{sticky:true})
       .on('click',ev=>{L.DomEvent.stop(ev);sel={tipo:'contador',d:c};panelDetalle();})
       .addTo(cCont);});
-  (D.mediciones||[]).forEach(m=>{
-    if(m.c && !enFiltro(m.c)) return;
-    const r=m.tot?Math.max(4,Math.min(14,Math.sqrt(m.tot)*1.1)):4;
-    L.circleMarker(m.ll,{pane:'pPtos',radius:r,color:'#14406b',weight:1.2,
-      fillColor:cssv('--div-pos'),fillOpacity:.85})
-      .bindTooltip('<b>Punto de control '+m.pc+'</b> \u00b7 '+m.com+'<br>'+fmt(m.tot)+' ciclistas medidos \u00b7 clic para el detalle',{sticky:true})
-      .on('click',ev=>{L.DomEvent.stop(ev);sel={tipo:'medicion',d:m};panelDetalle();})
-      .addTo(cMed);});
   D.siniestros.forEach(x=>{ if(!enFiltro(x.c))return;
     L.circleMarker(x.ll,{pane:'pPtos',radius:x.f>0?5:3,color:cssv('--c-sin'),weight:1,
       fillColor:cssv('--c-sin'),fillOpacity:x.f>0?.95:.5})
@@ -1398,25 +1379,6 @@ function panelDetalle(){
     return;
   }
 
-  if(sel.tipo==='medicion'){
-    const m=sel.d;
-    el.innerHTML='<h3>Punto de control '+m.pc+'</h3>'
-      +'<div class="sub">Medici\u00f3n SECTRA \u00b7 '+m.com+'</div>'
-      +fila('Ciclistas medidos',fmt(m.tot))
-      +fila('Fuera de punta',fmt(m.fp))
-      +fila('Punta ma\u00f1ana',fmt(m.pm))
-      +fila('Punta tarde',fmt(m.pt))
-      +fila('Ciclistas expandidos',fmt(m.exp))
-      +fila('Veh\u00edculos expandidos',fmt(m.expv))
-      +fila('Bicicletas por veh\u00edculo',fmt(m.prop*100,2)+' %')
-      +'<div class="mini"><canvas id="miniCanvas"></canvas></div>'
-      +'<div class="nota">Es la \u00fanica fuente con reparto <b>dentro del d\u00eda</b> asociado a un punto concreto: fuera de punta, punta ma\u00f1ana y punta tarde.</div>';
-    chDet=new Chart(document.getElementById('miniCanvas'),{type:'bar',
-      data:{labels:['Fuera de punta','Punta ma\u00f1ana','Punta tarde'],
-        datasets:[{data:[m.fp,m.pm,m.pt],
-          backgroundColor:[cssv('--u4'),cssv('--u6'),cssv('--u2')],borderRadius:3}]},
-      options:ejes('Ciclistas por per\u00edodo')});
-  }
 }
 
 const REG=[...new Set(Object.values(D.comunas).map(d=>d.reg).filter(Boolean))].sort();
@@ -1729,7 +1691,6 @@ function leyendaFilas(){
   const vis=(id,color,txt,forma)=>{const el=document.getElementById(id);
     if(el&&el.checked) pts.push({color:cssv(color),txt,forma:forma||'punto'});};
   vis('lCont','--c-cont','contador de flujo (tamaño = media diaria)');
-  vis('lMed','--div-pos','medición SECTRA');
   vis('lSin','--c-sin','siniestro con ciclista');
   vis('lEq','--c-ok','colegio o sede a menos de 300 m');
   vis('lFranja','--e1','franja de 300 m en torno a la red','caja');
