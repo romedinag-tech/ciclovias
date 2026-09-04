@@ -231,6 +231,29 @@ td.n,th.n{text-align:right;font-family:var(--font-data)}
 tbody tr:hover{background:var(--surface-alt)}
 .hide{display:none}
 .foot{color:var(--mut-2);font-size:.76rem;margin-top:20px;line-height:1.55;max-width:96ch}
+
+/* Ampliar y exportar: el mismo patron del tablero de siniestros del repo */
+.chartbox canvas{cursor:zoom-in}
+#chartModal{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;
+  background:rgba(8,12,20,.62);backdrop-filter:blur(2px);padding:24px}
+#chartModal[hidden]{display:none}
+.cm-box{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh);
+  width:min(1080px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+:root[data-theme="dark"] .cm-box{background-image:var(--card-grad);box-shadow:var(--card-3d)}
+.cm-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.cm-head h3{font-size:1.08rem;display:flex;align-items:center;gap:9px}
+.cm-head .cm-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.cm-canvas{position:relative;height:min(64vh,620px);padding:16px 18px}
+.cm-hint{padding:0 18px 14px;font-size:.74rem;color:var(--ink-lo)}
+.cm-x{border:1px solid var(--line);background:var(--surface-alt);color:var(--ink);
+  width:33px;height:33px;border-radius:9px;cursor:pointer;font-size:1rem;line-height:1}
+
+/* Mapa a pantalla completa, para encuadrar la figura antes de exportarla */
+body.mapafull{overflow:hidden}
+body.mapafull #cardMapa{position:fixed;inset:0;z-index:2500;margin:0;border-radius:0;
+  max-width:none;overflow:auto;padding:14px 18px}
+body.mapafull #map{height:calc(100vh - 250px)}
+body.mapafull #detalle{height:calc(100vh - 250px)}
 </style></head><body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
 <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h3"/></symbol>
@@ -400,8 +423,13 @@ tbody tr:hover{background:var(--surface-alt)}
 </section>
 
 <section id="viewEspacial" class="hide">
-  <div class="card">
-    <h2><svg class="ic"><use href="#i-map"/></svg>Mapa <span class="desc" id="mapHint" style="margin:0;font-weight:400"></span></h2>
+  <div class="card" id="cardMapa">
+    <h2><svg class="ic"><use href="#i-map"/></svg>Mapa <span class="desc" id="mapHint" style="margin:0;font-weight:400"></span>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="tbtn" id="mapFull">&#9974; Pantalla completa</button>
+        <button class="tbtn" id="mapDl">&#10515; Descargar figura</button>
+      </span>
+    </h2>
     <p class="desc" id="mapDesc"></p>
     <div class="maprow">
       <span class="seglab">Indicador</span>
@@ -455,6 +483,20 @@ tbody tr:hover{background:var(--surface-alt)}
     </div>
   </div>
 </section>
+
+<div id="chartModal" hidden>
+  <div class="cm-box">
+    <div class="cm-head">
+      <h3><svg class="ic"><use href="#i-trend"/></svg><span id="cmTitleTxt"></span></h3>
+      <div class="cm-actions">
+        <button class="tbtn" id="cmDl">&#10515; Descargar PNG</button>
+        <button class="cm-x" id="cmClose" title="Cerrar" aria-label="Cerrar">&#10005;</button>
+      </div>
+    </div>
+    <div class="cm-canvas"><canvas id="cmCanvas"></canvas></div>
+    <div class="cm-hint" id="cmPie"></div>
+  </div>
+</div>
 
 <div class="foot">
   Elaboración propia sobre fuentes públicas: Catastro Nacional de Ciclovías e índice de ciclo-inclusión (SECTRA / Programa de Vialidad y Transporte Urbano, MTT), contadores automáticos de flujo y análisis de contadores 2018 (MINVU, División de Desarrollo Urbano), Censo de Población y Vivienda 2024 (INE), Encuestas Origen-Destino del MTT y siniestros de tránsito (CONASET). Todo el contenido es agregado o de infraestructura pública; no contiene microdato individual.
@@ -792,6 +834,8 @@ function graficos(){
     data:{labels:Array.from({length:24},(_,i)=>i+'h'),datasets:[{label:'siniestros',data:sh,
       backgroundColor:cssv('--c-sin'),borderRadius:2}]},
     options:opt({plugins:{legend:{display:false}}})});
+
+  if(typeof enganchaAmpliar==='function') enganchaAmpliar();
 }
 
 // Cruce de la ciudad filtrada si existe; si no, el agregado de las 15 EOD.
@@ -974,11 +1018,15 @@ function initMapa(){
   map=L.map('map',{preferCanvas:true}).setView([-35.5,-71.3],5);
   ['pPoli','pRed','pPtos'].forEach((n,i)=>map.createPane(n).style.zIndex=[350,420,470][i]);
   bases={
-    claro:L.tileLayer(urlLienzo(),{attribution:'Esri, HERE, Garmin, &copy; OpenStreetMap',maxZoom:16}),
+    // `crossOrigin` es lo que permite exportar despues: sin el, dibujar una
+    // tesela en un canvas lo deja "contaminado" y `toDataURL` lanza una
+    // excepcion de seguridad. Esri y OpenStreetMap responden con CORS abierto.
+    claro:L.tileLayer(urlLienzo(),{attribution:'Esri, HERE, Garmin, &copy; OpenStreetMap',
+      maxZoom:16,crossOrigin:'anonymous'}),
     calles:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {attribution:'&copy; OpenStreetMap',maxZoom:19}),
+      {attribution:'&copy; OpenStreetMap',maxZoom:19,crossOrigin:'anonymous'}),
     satelite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {attribution:'Esri',maxZoom:19})};
+      {attribution:'Esri',maxZoom:19,crossOrigin:'anonymous'})};
   baseAct=bases.claro.addTo(map);
   document.getElementById('mapBase').onclick=ev=>{
     const b=ev.target.dataset.b; if(!b) return;
@@ -1370,6 +1418,200 @@ document.getElementById('selCruce').onclick=ev=>{
   const x=ev.target.dataset.x; if(!x) return;
   document.querySelectorAll('#selCruce button').forEach(b=>b.classList.toggle('on',b.dataset.x===x));
   cruceAct=x; dibujaCruce();
+};
+
+/* ================= ampliar y exportar ================= */
+// Fondo opaco al exportar: un PNG con fondo transparente pegado en un informe
+// sale con el texto invisible sobre el papel.
+const fondoOpaco={id:'fondoOpaco',beforeDraw:c=>{
+  const x=c.ctx; x.save(); x.globalCompositeOperation='destination-over';
+  x.fillStyle=cssv('--surface')||'#fff'; x.fillRect(0,0,c.width,c.height); x.restore();}};
+let chModal=null;
+function clonaDatos(d){return {labels:Array.isArray(d.labels)?d.labels.slice():d.labels,
+  datasets:d.datasets.map(x=>Object.assign({},x))};}
+function tituloDe(canvas){
+  const card=canvas.closest('.card'), h=card&&card.querySelector('h2');
+  if(!h) return 'Gráfico';
+  return h.innerText.replace(/\s+/g,' ').replace(/[⛶⤓]|Pantalla completa|Descargar figura/g,'').trim();
+}
+function abreModal(id){
+  const src=CH[id]; if(!src) return;
+  const cv=document.getElementById(id);
+  document.getElementById('cmTitleTxt').textContent=tituloDe(cv);
+  const card=cv.closest('.card'), fuente=card&&card.querySelector('.src');
+  document.getElementById('cmPie').textContent=(fuente?fuente.innerText.trim():'')
+    ||'Elaboración propia. Ciclovías de Chile.';
+  document.getElementById('chartModal').hidden=false;
+  document.querySelector('.cm-canvas').style.height=
+    Math.max(300,Math.min((window.innerHeight||800)*0.64,620))+'px';
+  if(chModal) chModal.destroy();
+  const cfg=src.config;
+  chModal=new Chart(document.getElementById('cmCanvas'),{type:cfg.type,
+    data:clonaDatos(cfg.data),
+    options:Object.assign({},cfg.options,{maintainAspectRatio:false,animation:false}),
+    plugins:(cfg.plugins||[]).concat([fondoOpaco])});
+  setTimeout(()=>chModal&&chModal.resize(),60);
+}
+function cierraModal(){document.getElementById('chartModal').hidden=true;
+  if(chModal){chModal.destroy();chModal=null;}}
+document.getElementById('cmClose').onclick=cierraModal;
+document.getElementById('chartModal').addEventListener('click',
+  e=>{if(e.target.id==='chartModal')cierraModal();});
+addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(!document.getElementById('chartModal').hidden) cierraModal();
+  else if(document.body.classList.contains('mapafull')) pantallaCompleta(false);
+});
+function nombreArchivo(t){
+  return (t||'figura').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^\w\d]+/g,'_').replace(/^_+|_+$/g,'').slice(0,70)||'figura';
+}
+document.getElementById('cmDl').onclick=()=>{
+  if(!chModal)return;
+  // Un canvas sin ancho devuelve "data:," y el usuario se descarga un archivo
+  // roto sin que nada avise. Se comprueba antes.
+  const cc=document.getElementById('cmCanvas');
+  if(!cc.width||!cc.height){
+    alert('El gráfico aún no termina de dimensionarse. Espera un segundo y vuelve a intentarlo.');
+    return;}
+  const a=document.createElement('a');
+  a.href=chModal.toBase64Image('image/png',1);
+  a.download=nombreArchivo(document.getElementById('cmTitleTxt').textContent)+'.png';
+  document.body.appendChild(a);a.click();a.remove();
+};
+// se engancha cada vez que se redibujan los graficos, porque `destruir` los
+// reemplaza y el canvas nuevo pierde el manejador
+function enganchaAmpliar(){
+  Object.keys(CH).forEach(id=>{
+    const c=document.getElementById(id); if(!c) return;
+    c.style.cursor='zoom-in';
+    c.title='Clic para ampliar y descargar como PNG';
+    c.onclick=()=>abreModal(id);
+  });
+}
+
+/* ---------------- mapa: pantalla completa y figura de informe ------------- */
+function pantallaCompleta(on){
+  document.body.classList.toggle('mapafull',on);
+  document.getElementById('mapFull').innerHTML=on?'&#10005; Salir':'&#9974; Pantalla completa';
+  setTimeout(()=>{if(map){map.invalidateSize();}},80);
+}
+document.getElementById('mapFull').onclick=()=>
+  pantallaCompleta(!document.body.classList.contains('mapafull'));
+
+// La figura se COMPONE a mano: se dibujan las teselas visibles, encima las
+// capas vectoriales y debajo la leyenda y la fuente. No se usa una libreria de
+// captura de pantalla porque Leaflet reparte el mapa entre imagenes sueltas y
+// varios canvas, y lo que interesa aqui no es una foto del navegador sino una
+// figura con su leyenda, que es lo que hace falta para un informe.
+async function figuraMapa(){
+  if(!map) return null;
+  const size=map.getSize(), W=size.x, H=size.y;
+  const escala=Math.min(2,(window.devicePixelRatio||1));
+  const padX=18, cabecera=64;
+  const filas=leyendaFilas();
+  const altoLeyenda=28+filas.length*20+26;
+  const cv=document.createElement('canvas');
+  cv.width=(W+padX*2)*escala; cv.height=(cabecera+H+altoLeyenda)*escala;
+  const c=cv.getContext('2d'); c.scale(escala,escala);
+  const F={paper:cssv('--surface')||'#fff', ink:cssv('--ink')||'#111',
+           mut:cssv('--mut')||'#667', line:cssv('--line')||'#ddd'};
+  c.fillStyle=F.paper; c.fillRect(0,0,W+padX*2,cabecera+H+altoLeyenda);
+
+  // El area del mapa se RECORTA antes de dibujar: Leaflet mantiene teselas y
+  // canvas mas alla del borde visible —el contenedor las oculta con overflow—
+  // y sin recorte se derraman sobre la cabecera y sobre la leyenda.
+  const rm=document.getElementById('map').getBoundingClientRect();
+  c.save();
+  c.beginPath(); c.rect(padX,cabecera,W,H); c.clip();
+  for(const im of document.querySelectorAll('#map .leaflet-tile-loaded')){
+    try{
+      const r=im.getBoundingClientRect();
+      c.drawImage(im,padX+(r.left-rm.left),cabecera+(r.top-rm.top),r.width,r.height);
+    }catch(e){ /* tesela sin CORS: se omite y queda el fondo */ }
+  }
+  document.querySelectorAll('#map canvas').forEach(k=>{
+    if(!k.width||!k.height) return;
+    const r=k.getBoundingClientRect();
+    try{ c.drawImage(k,padX+(r.left-rm.left),cabecera+(r.top-rm.top),r.width,r.height); }catch(e){}
+  });
+  c.restore();
+
+  // marco
+  c.strokeStyle=F.line; c.lineWidth=1;
+  c.strokeRect(padX+.5,cabecera+.5,W-1,H-1);
+
+  // cabecera, dibujada DESPUES del mapa para que nada la tape
+  c.fillStyle=F.paper; c.fillRect(0,0,W+padX*2,cabecera-2);
+  c.fillStyle=F.ink; c.font='600 17px "Source Serif 4", Georgia, serif';
+  c.fillText(indAct.t,padX,28);
+  c.fillStyle=F.mut; c.font='12px Inter, system-ui, sans-serif';
+  const amb=ambito();
+  c.fillText(amb+'  ·  '+fmt(D.zonas.filter(z=>enFiltro(z.c)).length)+' zonas censales'
+    +'  ·  '+(coroVisible?'coropleta por quintiles':'sin coropleta'),padX,48);
+
+  // leyenda
+  let y=cabecera+H+22;
+  c.font='600 11px Inter, system-ui, sans-serif';
+  filas.forEach(f=>{
+    let x=padX;
+    if(f.titulo){ c.fillStyle=F.ink; c.font='700 11px Inter, system-ui, sans-serif';
+      c.fillText(f.titulo,x,y); x+=c.measureText(f.titulo).width+10; }
+    c.font='11px Inter, system-ui, sans-serif';
+    f.items.forEach(it=>{
+      c.fillStyle=it.color;
+      if(it.forma==='linea'){ c.fillRect(x,y-5,18,3.5); x+=22; }
+      else if(it.forma==='punto'){ c.beginPath(); c.arc(x+5,y-4,5,0,6.2832); c.fill(); x+=15; }
+      else { c.fillRect(x,y-9,11,11); x+=15; }
+      c.fillStyle=F.mut; c.fillText(it.txt,x,y); x+=c.measureText(it.txt).width+14;
+    });
+    y+=20;
+  });
+  c.fillStyle=F.mut; c.font='10px Inter, system-ui, sans-serif';
+  c.fillText('Fuentes: Catastro Nacional de Ciclovías (SECTRA/MTT) · Censo 2024 (INE) · '
+    +'Contadores MINVU · EOD del MTT · Siniestros CONASET. Elaboración propia.',padX,y+4);
+  return cv;
+}
+// La leyenda se reconstruye como datos y no se copia del DOM: dibujarla sobre
+// el canvas exige conocer color, forma y texto de cada item por separado.
+function leyendaFilas(){
+  const P=PAL(), n=P.length, filas=[];
+  if(coroVisible&&cortes.length){
+    const et=cortes.map(x=>'\u2264 '+fmt(x,1)).concat(['> '+fmt(cortes[cortes.length-1],1)]);
+    filas.push({titulo:indAct.t+(indAct.s.trim()?' ('+indAct.s.trim()+')':'')+':',
+      items:et.map((e,i)=>({color:indAct.inv?P[n-1-i]:P[i],txt:e,forma:'caja'}))});
+  }
+  const red=[]; ETAPAS.forEach((e,i)=>{
+    const cap=[cRed,cPlan,cPlan,cPlan][i];
+    if(map&&cap&&map.hasLayer(cap)) red.push({color:cssv('--e'+i),txt:e,forma:'linea'});});
+  if(red.length) filas.push({titulo:'Red:',items:red});
+  const pts=[];
+  const vis=(id,color,txt,forma)=>{const el=document.getElementById(id);
+    if(el&&el.checked) pts.push({color:cssv(color),txt,forma:forma||'punto'});};
+  vis('lCont','--c-cont','contador de flujo (tamaño = media diaria)');
+  vis('lMed','--div-pos','medición SECTRA');
+  vis('lSin','--c-sin','siniestro con ciclista');
+  vis('lEq','--c-ok','colegio o sede a menos de 300 m');
+  vis('lFranja','--e1','franja de 300 m en torno a la red','caja');
+  if(pts.length) filas.push({titulo:'Capas:',items:pts});
+  return filas;
+}
+document.getElementById('mapDl').onclick=async()=>{
+  const b=document.getElementById('mapDl'); const txt=b.innerHTML;
+  b.innerHTML='Componiendo…'; b.disabled=true;
+  try{
+    const cv=await figuraMapa();
+    if(cv){
+      const a=document.createElement('a');
+      a.href=cv.toDataURL('image/png');
+      a.download=nombreArchivo(indAct.t+' '+ambito())+'.png';
+      document.body.appendChild(a);a.click();a.remove();
+    }
+  }catch(e){
+    alert('No se pudo componer la figura: '+e.message
+      +'\nSuele ocurrir si el proveedor de teselas bloquea su reutilización; '
+      +'prueba con el fondo «Claro».');
+  }finally{ b.innerHTML=txt; b.disabled=false; }
 };
 
 initFiltros(); migas(); kpis(); graficos(); tablas();

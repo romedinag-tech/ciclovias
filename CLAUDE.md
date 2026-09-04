@@ -259,4 +259,18 @@ Todos de la misma familia: **fallas que no lanzan error**.
   y cualquier operacion de conjunto revienta con `TopologyException`. Reparar
   con `make_valid()` antes de intersectar; no altera la extension.
 
+- `[visor]` 2026-09-04 — **La figura del mapa se COMPONE, no se captura.** Se
+  dibujan a mano las teselas visibles, encima las capas vectoriales y debajo la
+  leyenda y la linea de fuentes. No se usa una libreria de captura de pantalla
+  porque Leaflet reparte el mapa entre imagenes sueltas y varios canvas, y
+  porque lo que hace falta para un informe no es una foto del navegador sino una
+  figura con su leyenda. Dos condiciones para que funcione: las teselas se
+  piden con `crossOrigin:'anonymous'` —sin eso el canvas queda contaminado y
+  `toDataURL` lanza una excepcion de seguridad— y el area del mapa se **recorta**
+  antes de dibujar, porque Leaflet mantiene teselas mas alla del borde visible y
+  sin recorte se derraman sobre la cabecera y la leyenda.
+- `[visor]` 2026-09-04 — **Un canvas sin ancho exporta `data:,`**, es decir un
+  archivo roto que el navegador descarga sin avisar. Pasa cuando el modal se
+  abre antes de que el layout asiente. Se comprueba el ancho antes de exportar.
+
 <!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=pendiente -->
