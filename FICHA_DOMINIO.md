@@ -225,6 +225,55 @@ Calculado ahora. Sirve para comprobar que una consulta nueva sobre este banco da
 - Kilómetros existentes por comuna: Concepción 53,1 · San Pedro de la Paz 37,7 · Hualpén 19,7 ·
   Talcahuano 15,2 · Chiguayante 13,1 · Coronel 10,2 · Tomé 6,4 · Hualqui 4,2 · **Lota 0,2**.
 
+## Indicadores ya calculados
+
+Hay dos cosas distintas en este banco y confundirlas es el error caro: **valores publicados**, que
+existen sobre una geometría fija y una fecha fija, y **recetas**, que se vuelven a ejecutar sobre el
+área que se pida. Un valor publicado no se recorta a un polígono menor; una receta no tiene cifra
+hasta que se corre.
+
+Todas las salidas propias se calcularon el **4 de septiembre de 2026** sobre el corte **2026-07** del
+catastro, descargado ese mismo día.
+
+### Publicados y estables
+
+Valor fijo sobre una geometría fija. Se citan tal cual o no se citan.
+
+| Indicador | Qué explica | Geometría y fecha | Dónde vive | Cuándo **no** sirve |
+|---|---|---|---|---|
+| **Índice de ciclo-inclusión (ICC)** — `ind_red`, `ind_cob`, `ind_ciclo_` y sus versiones normalizadas | Cuánta red tiene una comuna en relación con su red vial (`prop_red`, 0 a 0,38), qué proporción de su población vive a 300 m (`cobpob_`, 0 a 0,94) y de su equipamiento queda cubierto (`cobequipa_`, 0 a 1) | Comuna completa, 346 comunas. SECTRA no declara corte; el servicio fue modificado por última vez en enero de 2026 | `sectra_icc_comunas` | **Para cualquier área menor que la comuna.** Está calculado sobre el polígono comunal entero: recortarlo a un barrio o a un polígono a medida da un número que no significa nada. Ahí hay que reaplicar la receta |
+| **ICC con cartera planificada** | El mismo índice suponiendo ejecutada la cartera. Medido: **209 de las 346 comunas mejoran** y 99 quedan igual, con un alza media de 0,085 en `ind_ciclo_` | Comuna completa, mismo corte | `sectra_icc_comunas_planes` | Igual que el anterior. Además no es un pronóstico: supone la cartera ejecutada completa, sin plazo ni probabilidad |
+| **Estadística de cada contador** — media diaria, semanal y mensual, promedio de día hábil y de fin de semana, mínimo, máximo | Cuánto se pedala en un punto y si ese uso es utilitario o recreativo | Punto. Cada contador con **su propia ventana**, entre el 4-12-2015 y el 5-11-2024 | `minvu_contadores` | **Para comparar contadores entre sí sin mirar su ventana**: uno medido hasta 2021 y otro hasta 2024 no son comparables. Y no sirve para nada estacional ni horario: la fuente no publica la serie |
+| **Población beneficiada MINVU** | La cifra oficial de MINVU de población dentro del área de influencia, con desglose por sexo y tramo etario | 33.232 manzanas dentro de **694 m medidos por la red vial**, no en línea recta | `minvu_manzanas_poblacion_beneficiada` | **Para mezclarla con nuestra cobertura a 300 m**: son umbrales y métricas distintas. Y no trae `MANZENT`, de modo que sólo se une por cruce espacial |
+| **Conteo de ciclistas por punto de control** — `FP`, `PM`, `PT`, `Tot_cicl`, factores de expansión | El único reparto **dentro del día** asociado a un punto concreto: fuera de punta, punta mañana y punta tarde | 128 puntos, **sólo Antofagasta y Talca** | `sectra_mediciones_antofagasta_talca` | Fuera de esas dos ciudades no existe. No es una serie: es una medición puntual |
+| **Cobertura poblacional propia** — `pct_pob_150/300/500/694/1000` y su equivalente para ciclistas | Qué proporción de la población de la comuna vive a cada distancia de la red existente | Comuna, 221 comunas con red | `cobertura_comuna` | Para las 89 comunas sin tramo catastrado no hay fila, y ausencia no es cero medido |
+| **Fragmentación comunal** — `n_componentes`, `km_componente_mayor`, `pct_km_componente_mayor` | Si los kilómetros de una comuna forman una red o tramos sueltos | Comuna, 222 comunas, tolerancia de unión **20 m** | `conectividad_comuna` | **Sus `n_componentes` NO se suman.** Sumados dan 800 cuando el país tiene 733: una componente que cruza 19 comunas se cuenta 19 veces. Para contar en un recorte hay que usar `tramo_componente` y contar componentes distintas |
+| **Componentes de la red** | Cada fragmento continuo con su kilometraje y cuántas comunas cruza | Componente conexa, 733 en el país, la mayor con 311,8 km | `componentes` + `tramo_componente` | Depende de la tolerancia; ver `conectividad_sensibilidad` antes de citar |
+| **Demanda censal** | Personas que declaran la bicicleta como modo principal y su participación | Comuna, 334 comunas · Censo 2024 | `demanda_comuna` | El universo son quienes declaran modo, no la población total. Es el viaje al trabajo o al estudio, no todos los viajes |
+| **KPI de la EOD por ciudad** | Viajes diarios, viajes por persona, partición modal, propósito, tiempo mediano y distancia media, en total y sólo bicicleta | Ciudad-año EOD, 18 ciudades entre 2010 y 2023 | `eod_kpi` | **No admite lectura temporal**: cada ciudad tiene un año distinto. Y su `pct_bicicleta` heredado del índice está en cero en ciudades que sí la midieron; usar la reconstrucción propia |
+| **Siniestros con ciclista** | Dónde y cuándo ocurren, con gravedad | Punto, 13.357 siniestros, 2020 a 2024 | `siniestros_bici` | Es un **conteo, no una tasa**: una comuna grande acumula más sin que eso signifique más riesgo por viaje. Normalizar antes de comparar |
+
+### Recetas re-ejecutables
+
+No tienen cifra propia: producen una para el área que se les pida. Todas declaran su parámetro.
+
+| Receta | Qué produce | Grano | Script | Parámetro que hay que declarar |
+|---|---|---|---|---|
+| **Distancia a la red** | Distancia de cada manzana y cada establecimiento al tramo existente más cercano, de la que se deriva **cualquier** umbral sin recalcular | Manzana (197.168, en 221 comunas) y establecimiento (12.576) | `analisis_cobertura.py` → `manzana_cobertura`, `equipamiento_cobertura` | Distancia euclidiana desde el centroide, no por la red vial. Con barreras —río, línea férrea, autopista— sobrestima el acceso |
+| **Componentes conexas** | La red partida en fragmentos continuos, con su sensibilidad | Tramo y componente | `analisis_conectividad.py` | **La tolerancia de unión.** Probadas 1, 5, 10, 20, 35 y 50 m; a 20 m la curva se aplana. Une geometrías, no extremos, y es por tanto una cota inferior de la fragmentación |
+| **Reconstrucción de la bicicleta en la EOD** | La participación de la bicicleta en cada EOD, separándola del grupo no motorizado | Ciudad-año | `analisis_demanda.py` → `demanda_eod_ciudad` | Validada contra el informe oficial en las 8 ciudades donde ese índice es consistente: r = 0,9999. En las otras 7 el índice se contradice y queda marcado |
+| **Cruces por atributo de la persona** | Participación de la bicicleta por sexo, edad, quintil, propósito, período y hora | Ciudad × dimensión | `analisis_eod_cruces.py` | Se publica la **participación dentro del grupo**, no el volumen. Sólo ~10 ciudades tienen quintil de ingreso |
+| **Distribución de distancias** | Reparto del 100 % de los viajes por rango, bicicleta contra todos los modos | Ciudad × modo × tramo | `analisis_eod_distancias.py` | Distancia entre centroides de zona; el intrazonal se estima con 0,7 del radio equivalente. Resuelta en el 95,6 % de los viajes. Subestima el recorrido real |
+| **Agregación a zona censal** | Demanda, cobertura, NSE y siniestros por zona | Zona censal (4.577) | `analisis_zonas.py` | La distancia de la zona es la de sus manzanas **ponderada por población**, no el promedio simple |
+| **EOD llevada a zona censal** | Viajes en bicicleta generados y atraídos, en la zonificación del visor | Zona censal (3.030 con dato) | `cruza_eod_zonas_censales.py` | Reparto proporcional a la **población** del trozo, no al área. Conserva el 97,8 % de los viajes; el resto son zonas EOD sin contraparte censal |
+| **Panel del catastro** | Los cuatro cortes con campos homogeneizados y llave normalizada | Tramo × corte (16.001) | `normaliza.py` | Filtrar `etapa == 'existentes'` para hablar de red construida |
+
+### Una advertencia sobre el `CLASIF` del ICC
+
+Clasifica las comunas en `Rural` (185), `Urbana` (82) y `Mixta` (78), pero **una comuna trae la
+categoría en blanco**. Agrupar por ese campo sin filtrarla deja una categoría fantasma de un
+elemento.
+
 ## Qué falta
 
 - **89 comunas sin ningún tramo catastrado.** No está establecido si es que no tienen
