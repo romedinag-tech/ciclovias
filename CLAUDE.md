@@ -182,6 +182,35 @@ los desplazamientos al trabajo en bicicleta, y **49 %** de la población de
 ciudades sobre 20.000 habitantes considera que no hay ciclovías en su comuna o
 que son de mala calidad (sube a **63 %** en ciudades intermedias menores).
 
+## Capa de análisis
+
+`scripts/analisis_cobertura.py` y `scripts/analisis_conectividad.py` producen
+`data/analisis/`, y `scripts/genera_analisis.py` escribe `ANALISIS.md` desde esas
+salidas — misma regla que `FUENTES.md`: el documento no se edita a mano.
+
+Tres decisiones de método que conviene no volver a discutir desde cero:
+
+**Distancia en vez de buffer.** No se fija un radio y se cuenta lo que cae
+adentro: se calcula para cada manzana y cada establecimiento la distancia al
+tramo existente más cercano. Cualquier umbral se deriva después sin recalcular
+—300 m es el del ICC de SECTRA, 694 m el del estudio MINVU 2018— y se puede
+mostrar la curva completa en vez de un número que depende del radio elegido.
+
+**El grafo de conectividad une tramos, no extremos.** Medido sobre la red
+existente, el 37,0 % de los extremos coincide con el extremo de otro tramo, pero
+otro **11,9 % cae sobre el interior de otro tramo**: son empalmes en T. Un grafo
+que sólo mira extremos los pierde y reporta la red bastante más fragmentada de
+lo que es — con el método por extremos la componente mayor daba 56,4 km y con el
+correcto da 311,8 km. La tolerancia adoptada es **20 m**, elegida porque es donde
+la curva se aplana: entre 20 y 50 m la componente mayor casi no se mueve. El
+supuesto es optimista (dos ciclovías que se cruzan quedan unidas aunque el cruce
+no permita virar), así que la fragmentación reportada es una **cota inferior**.
+
+**El NSE viene de la zona censal, no se recalcula.** Se une por `ID_ZONA` de la
+manzana contra `zona` de `analysis_ready/analysis_zona.parquet` — llave verificada
+(CUT + distrito + zona, p. ej. `810101001`). Resuelve el 96,8 % de las manzanas;
+el resto queda NULL y se declara.
+
 ## Convenciones heredadas del repo
 
 - Llave territorial: comuna `cut_com` (5 díg. INE), región `cut_reg` (2 díg.).
