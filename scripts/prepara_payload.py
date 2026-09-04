@@ -232,6 +232,26 @@ def main():
                 {"v": str(r.valor), "b": nn(r.bici, 0), "t": nn(r.total, 0),
                  "p": nn(r.part)} for r in g.itertuples()]
 
+
+    # Distribucion de distancias del viaje, por ciudad y modo. La bicicleta es
+    # el modo de los viajes cortos, de modo que esta curva es la que dice hasta
+    # donde puede competir: sin ella el debate sobre cobertura se hace a ciegas.
+    fd = AN / "eod_distancias.parquet"
+    if fd.exists():
+        dd = pd.read_parquet(fd)
+        D["distancias"] = {}
+        for (ciu, modo), g in dd.groupby(["ciudad", "modo"]):
+            D["distancias"].setdefault(str(ciu), {})[str(modo)] = [
+                {"t": str(r.tramo), "n": nn(r.viajes, 0), "p": nn(r.part)}
+                for r in g.itertuples()]
+        nac = dd.groupby(["modo", "tramo"], observed=True).viajes.sum().reset_index()
+        D["distancias_nac"] = {}
+        for modo, g in nac.groupby("modo"):
+            tot = g.viajes.sum()
+            D["distancias_nac"][str(modo)] = [
+                {"t": str(r.tramo), "n": nn(r.viajes, 0),
+                 "p": nn(100 * r.viajes / tot if tot else 0)} for r in g.itertuples()]
+
     ct = gpd.read_parquet(PQ / "minvu_contadores.parquet")
     D["contadores"] = [{
         "n": (str(r.NOMBRE_CONTADOR) if pd.notna(r.NOMBRE_CONTADOR) else "")[:50],
@@ -336,6 +356,18 @@ def main():
                      "multipropósito en red vial» y el 88 % de ellos son "
                      "cartera MOP en camino rural."),
     }
+
+    # Franja de influencia de 300 m alrededor de la red existente. La cobertura
+    # por zona censal promedia manzanas y esconde justamente lo que el umbral
+    # quiere mostrar: donde llega y donde no llega la red. Dibujar la franja
+    # real evita tener que cambiar de zonificacion para leerlo.
+    _ex = u[u.existente].to_crs(32719)
+    _b = _ex.geometry.buffer(300).union_all()
+    _g = gpd.GeoSeries([_b], crs=32719).to_crs(4326).iloc[0].simplify(0.00035)
+    _partes = list(_g.geoms) if _g.geom_type == "MultiPolygon" else [_g]
+    D["franja300"] = [c for c in
+                      ([[round(y, 5), round(x, 5)] for x, y in q.exterior.coords]
+                       for q in _partes) if len(c) >= 4]
 
     # ------------------------------------------------------------------ #
     # 5. GEOMETRIA COMUNAL Y METROS (activos en solo lectura)

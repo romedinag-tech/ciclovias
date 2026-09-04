@@ -224,4 +224,25 @@ Todos de la misma familia: **fallas que no lanzan error**.
   cambia a viridis, que ordena por luminosidad. Los graficos no espaciales
   conservan la rampa azul neutra.
 
+- `[banco]` 2026-09-04 — **La distancia del viaje no viene en la EOD**: se
+  calcula entre centroides de zona de origen y destino, y el viaje intrazonal
+  se estima con el radio equivalente de la zona (0,7 R). El metodo NO es propio,
+  es el de `EODs/geo_distancias.py`; se replica aca porque ese script escribe
+  dentro de `EODs` —solo lectura— y porque el parquet se regenera aguas arriba
+  perdiendo la columna `distancia_km`, de modo que el codigo del tablero de
+  movilidad la pide y no esta. El tratamiento del intrazonal importa
+  especialmente para la bicicleta, que es el modo de los viajes cortos:
+  dejarlo en cero hundiria la moda en el primer tramo. Resultado: el 97,1 % de
+  los viajes en bicicleta ocurre bajo 8 km (promedio 2,24 km) contra 83,2 % del
+  conjunto de modos (4,37 km).
+- `[visor]` 2026-09-04 — **Una linea de un solo color desaparece sobre una
+  coropleta saturada.** La red quedaba ilegible justo cuando se miraba contra
+  la capa de cobertura, que es cuando mas se necesita. Se dibuja con reborde:
+  una linea oscura ancha debajo y el color encima, tecnica cartografica
+  estandar que funciona sobre cualquier fondo.
+- `[visor]` 2026-09-04 — Para leer la cobertura a 300 m **no hace falta cambiar
+  de zonificacion**: se dibuja la franja real de 300 m en torno a la red como
+  capa. La zona censal promedia manzanas y esconde justamente lo que el umbral
+  quiere mostrar; la geometria lo muestra tal cual.
+
 <!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=pendiente -->

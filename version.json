@@ -1,10 +1,5 @@
 {
-  "version": 3,
-  "generado": "2026-09-04T13:26:46-04:00",
-  "visor": "https://romedinag-tech.github.io/ciclovias/",
-  "secciones": [
-    "infraestructura",
-    "demanda",
-    "espacial"
-  ]
+  "version": 4,
+  "generado": "2026-09-04T13:44:02-04:00",
+  "visor": "https://romedinag-tech.github.io/ciclovias/"
 }

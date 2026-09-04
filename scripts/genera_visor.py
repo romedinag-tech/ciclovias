@@ -81,7 +81,8 @@ PLANTILLA = r"""<!doctype html>
   /* rampa neutra para los graficos (dato no espacial) */
   --seq-1:#EFF3FB; --seq-2:#C6D9F0; --seq-3:#8CB3DE; --seq-4:#4A80C0; --seq-5:#16365A;
   --div-pos:#2166AC; --div-pos-2:#67A9CF;
-  --e0:#16365A; --e1:#2E7EBB; --e2:#7FB3D9; --e3:#B9CFE4;
+  --e0:#00344D; --e1:#0F7FA8; --e2:#1FA8C4; --e3:#7FD4E8;
+  --red-casing:#06121C;   /* reborde oscuro bajo el trazo de la red */
   --c-sin:#B2182B; --c-cont:#3F8E86; --c-ok:#2E8B57;
 }
 :root[data-theme="dark"]{
@@ -100,7 +101,8 @@ PLANTILLA = r"""<!doctype html>
   --u5:#B6D97A; --u6:#7CC15F; --u7:#3E9C5F;
   --seq-1:#16283d; --seq-2:#1d4468; --seq-3:#2f6ea8; --seq-4:#4f9ada; --seq-5:#8fc6f5;
   --div-pos:#7FB9EC; --div-pos-2:#4a86bd;
-  --e0:#8fc6f5; --e1:#4f9ada; --e2:#2f6ea8; --e3:#40566f;
+  --e0:#26E0FF; --e1:#00B4E0; --e2:#0E86AE; --e3:#5FA9C0;
+  --red-casing:#00131C;
   --c-sin:#E4736B; --c-cont:#5CC6BB; --c-ok:#5FBF87;
 }
 :root[data-cb="1"]{
@@ -109,7 +111,8 @@ PLANTILLA = r"""<!doctype html>
      distingue con cualquier tipo de daltonismo. */
   --u1:#440154; --u2:#414487; --u3:#2a788e; --u4:#22a884;
   --u5:#7ad151; --u6:#bddf26; --u7:#fde725;
-  --e0:#000000; --e1:#5b5b5b; --e2:#969696; --e3:#c9c9c9;
+  --e0:#ffffff; --e1:#d9d9d9; --e2:#a6a6a6; --e3:#737373;
+  --red-casing:#000000;
   --c-sin:#d95f02; --c-cont:#1b9e77; --c-ok:#7570b3;
 }
 :root[data-theme="dark"][data-cb="1"]{
@@ -243,6 +246,12 @@ tbody tr:hover{background:var(--surface-alt)}
 <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
 <symbol id="i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
 <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-ruler" viewBox="0 0 24 24"><path d="M2 15 15 2l7 7L9 22z"/><line x1="6" y1="11" x2="8" y2="13"/><line x1="9" y1="8" x2="11" y2="10"/><line x1="12" y1="5" x2="14" y2="7"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="5" r="2.5"/><path d="M7.5 19h6a4 4 0 0 0 0-8h-3a4 4 0 0 1 0-8h6"/></symbol>
+<symbol id="i-helmet" viewBox="0 0 24 24"><path d="M3 14a9 9 0 0 1 18 0"/><path d="M2 14h20l-2 4H4z"/><line x1="8" y1="6" x2="10" y2="10"/></symbol>
+<symbol id="i-school" viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5z"/><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 7h14"/><path d="M8 7 5 14h6z"/><path d="M16 7l-3 7h6z"/></symbol>
 </svg>
 
 <div class="wrap">
@@ -259,8 +268,8 @@ tbody tr:hover{background:var(--surface-alt)}
 
 <nav class="tabs" id="mainTabs" aria-label="Secciones">
   <button data-v="infra" class="on" aria-current="page"><svg class="ic"><use href="#i-road"/></svg>Análisis de infraestructura</button>
-  <button data-v="demanda"><svg class="ic"><use href="#i-users"/></svg>Análisis de demanda</button>
-  <button data-v="espacial"><svg class="ic"><use href="#i-layers"/></svg>Análisis espacial</button>
+  <button data-v="demanda"><svg class="ic"><use href="#i-bike"/></svg>Análisis de demanda</button>
+  <button data-v="espacial"><svg class="ic"><use href="#i-map"/></svg>Análisis espacial</button>
 </nav>
 
 <div class="filters">
@@ -291,7 +300,7 @@ tbody tr:hover{background:var(--surface-alt)}
   </div>
   <div class="grid2">
     <div class="card">
-      <h2><svg class="ic"><use href="#i-grid"/></svg>Kilómetros no son red: la fragmentación</h2>
+      <h2><svg class="ic"><use href="#i-route"/></svg>Kilómetros no son red: la fragmentación</h2>
       <p class="desc">Cada burbuja es una comuna, y su tamaño la población. El eje horizontal es cuánta red tiene; el vertical, qué proporción de esos kilómetros pertenece a su fragmento conectado más grande. Abajo a la derecha están las comunas con mucha red repartida en tramos sueltos: kilometraje sin continuidad de viaje.</p>
       <div class="chartbox"><canvas id="cFrag"></canvas></div>
       <details class="method"><summary>Cómo se midió la conectividad</summary>
@@ -328,7 +337,7 @@ tbody tr:hover{background:var(--surface-alt)}
       </details>
     </div>
     <div class="card">
-      <h2><svg class="ic"><use href="#i-gauge"/></svg>La EOD contra el Censo 2024</h2>
+      <h2><svg class="ic"><use href="#i-target"/></svg>La EOD contra el Censo 2024</h2>
       <p class="desc">Cada punto es una ciudad: en el eje horizontal la participación reconstruida de la EOD, en el vertical la del Censo 2024 sobre las mismas comunas. Miden universos distintos —la EOD todos los viajes, el Censo el modo principal al trabajo o al estudio—, de modo que los niveles no coinciden; lo que valida la reconstrucción es que ordenen igual.</p>
       <div class="chartbox"><canvas id="cEodCenso"></canvas></div>
       <div class="src" id="srcCorr"></div>
@@ -351,6 +360,15 @@ tbody tr:hover{background:var(--surface-alt)}
     </div>
   </div>
   <div class="grid2">
+    <div class="card">
+      <h2><svg class="ic"><use href="#i-ruler"/></svg>Hasta dónde llega la bicicleta <span class="pill" id="ambDist"></span></h2>
+      <p class="desc">Reparto del 100 % de los viajes según su distancia. La barra oscura es la bicicleta; la clara, el conjunto de todos los modos. La comparación es el punto: muestra en qué rango la bicicleta compite de verdad y desde dónde deja de hacerlo.</p>
+      <div class="chartbox"><canvas id="cDist"></canvas></div>
+      <div class="src" id="srcDist"></div>
+      <details class="method"><summary>Cómo se mide la distancia</summary>
+        <p>No viene en la encuesta: se calcula como distancia en línea recta entre el centroide de la zona de origen y el de la zona de destino, con el mismo procedimiento que ya usa el tablero de movilidad del repositorio. El viaje que empieza y termina en la misma zona no puede medirse así y se estima con el radio equivalente de esa zona (0,7 R); ese tratamiento importa especialmente para la bicicleta, que es el modo de los viajes cortos, porque dejar el intrazonal en cero hundiría artificialmente la moda en el primer tramo. La distancia queda resuelta en el 95,6 % de los viajes. Al ser distancia recta entre centroides, subestima el recorrido real: la distancia efectiva sobre la red es mayor.</p>
+      </details>
+    </div>
     <div class="card">
       <h2><svg class="ic"><use href="#i-users"/></svg>Quién pedalea <span class="pill" id="ambCruce"></span></h2>
       <p class="desc">Qué proporción de los viajes de cada grupo se hace en bicicleta. Se muestra la <b>participación dentro del grupo</b> y no el volumen, porque los grupos tienen tamaños muy distintos: el conteo bruto hablaría del tamaño del grupo antes que de su propensión a pedalear.</p>
@@ -402,6 +420,7 @@ tbody tr:hover{background:var(--surface-alt)}
     </div>
     <div class="maprow lyr">
       <label><input type="checkbox" id="lRed" checked> Red existente</label>
+      <label><input type="checkbox" id="lFranja"> Franja de 300 m</label>
       <label><input type="checkbox" id="lPlan" checked> Cartera futura</label>
       <label><input type="checkbox" id="lCont" checked> Contadores de flujo</label>
       <label><input type="checkbox" id="lMed"> Mediciones SECTRA</label>
@@ -429,7 +448,7 @@ tbody tr:hover{background:var(--surface-alt)}
       <div class="src">Fuente: CONASET, datos abiertos 2020-2024. Solo los siniestros con coordenada válida dentro de Chile.</div>
     </div>
     <div class="card">
-      <h2><svg class="ic"><use href="#i-grid"/></svg>Zonas que generan viajes en bicicleta</h2>
+      <h2><svg class="ic"><use href="#i-bike"/></svg>Zonas que generan viajes en bicicleta</h2>
       <p class="desc">Las veinte zonas censales con mayor participación de la bicicleta entre las que superan los 500 habitantes. La última columna indica a qué distancia media, ponderada por población, está la zona del tramo de ciclovía más cercano.</p>
       <div class="tw"><table id="tZonas"><thead></thead><tbody></tbody></table></div>
       <div class="callout">Varias de las zonas con más uso de bicicleta del país están a kilómetros de una ciclovía. Es demanda que ya existe sin infraestructura que la acompañe, y es el argumento más directo para priorizar cartera.</div>
@@ -729,6 +748,34 @@ function graficos(){
       +' %) el uso baja el fin de semana, señal de viaje obligado. Fuente: contadores automáticos de flujo, MINVU–DDU.'
     : 'No hay contadores de flujo en '+amb+'.';
 
+  /* distancias: hasta donde llega la bicicleta */
+  destruir('cDist');
+  const dc=ciudadEod();
+  const dk=dc?(clavesDist[sinAc(dc.ciudad)]||null):null;
+  const fuenteD=(dk&&D.distancias&&D.distancias[dk])?D.distancias[dk]:(D.distancias_nac||{});
+  const tramos=(fuenteD.bicicleta||[]).map(x=>x.t);
+  if(tramos.length){
+    const elD=document.getElementById('ambDist');
+    if(elD) elD.textContent=dk?(dc.ciudad+' '+dc.anio):'15 EOD, 2010-2023';
+    const pB=tramos.map(t=>(fuenteD.bicicleta.find(x=>x.t===t)||{}).p||0);
+    const pT=tramos.map(t=>((fuenteD.todos||[]).find(x=>x.t===t)||{}).p||0);
+    CH.cDist=new Chart(document.getElementById('cDist'),{type:'bar',
+      data:{labels:tramos.map(t=>t+' km'),datasets:[
+        {label:'bicicleta',data:pB,backgroundColor:cssv('--u7'),borderRadius:3},
+        {label:'todos los modos',data:pT,backgroundColor:cssv('--seq-2'),borderRadius:3}]},
+      options:opt({plugins:{legend:{labels:{boxWidth:12,font:{size:11},color:mut}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+pct(c.raw,1)+' de sus viajes'}}},
+        scales:{x:{grid:{display:false},ticks:{color:mut,font:{size:10}}},
+          y:{title:{display:true,text:'% de los viajes del modo',color:mut,font:{size:10}},
+             grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true}}})});
+    let acum=0,bajo8=0;
+    tramos.forEach((t,i)=>{acum+=pB[i]; if(t!=='8+') bajo8+=pB[i];});
+    document.getElementById('srcDist').textContent=
+      'El '+fmt(bajo8,1)+' % de los viajes en bicicleta ocurre bajo los 8 km'
+      +(pT.length?(', contra el '+fmt(pT.slice(0,-1).reduce((a,b)=>a+b,0),1)+' % del conjunto de modos'):'')
+      +'. Fuente: Encuestas Origen-Destino del Ministerio de Transportes.';
+  }
+
   /* cruces: quien pedalea */
   dibujaCruce();
   fichaTerritorio();
@@ -753,6 +800,7 @@ function graficos(){
 // el nombre de carpeta que usa el resto del visor. Comparar literal hacia caer
 // siempre al agregado nacional sin que nada fallara.
 const clavesCruce=Object.fromEntries(Object.keys(D.cruces||{}).map(k=>[sinAc(k),k]));
+const clavesDist=Object.fromEntries(Object.keys(D.distancias||{}).map(k=>[sinAc(k),k]));
 function cruceDe(dim){
   const c=ciudadEod();
   if(c){
@@ -903,7 +951,7 @@ const IND=[
 ];
 const PAL=()=>[cssv('--u1'),cssv('--u2'),cssv('--u3'),cssv('--u4'),cssv('--u5'),cssv('--u6'),cssv('--u7')];
 let map,capaZona,cortes=[],indAct=IND[0],baseAct,bases,coroVisible=true,sel=null;
-let cRed,cPlan,cCont,cSin,cHeat,cEq,cMed,pendienteEncuadre=false;
+let cRed,cPlan,cCont,cSin,cHeat,cEq,cMed,cFranja,pendienteEncuadre=false;
 
 // El fondo neutro sigue al tema: un lienzo claro bajo la interfaz oscura
 // desentona y ademas hace ilegible la coropleta. Esri publica las dos
@@ -940,11 +988,17 @@ function initMapa(){
   };
   cRed=L.layerGroup().addTo(map); cPlan=L.layerGroup().addTo(map);
   cCont=L.layerGroup().addTo(map); cSin=L.layerGroup(); cEq=L.layerGroup(); cMed=L.layerGroup();
+  // Franja real de 300 m: es el umbral del indicador de cobertura dibujado
+  // como geometria, en vez de promediado dentro de una zona censal.
+  cFranja=L.layerGroup();
+  (D.franja300||[]).forEach(a=>cFranja.addLayer(L.polygon(a,{pane:'pPoli',
+    fillColor:cssv('--e1'),fillOpacity:.20,color:cssv('--e0'),weight:1,
+    dashArray:'3,3',interactive:false})));
   dibujaRed(); dibujaPuntos();
   const bind=(id,capa)=>document.getElementById(id).onchange=ev=>
     ev.target.checked?map.addLayer(capa):map.removeLayer(capa);
-  ['lRed','lPlan','lCont','lMed','lSin','lEq'].forEach((id,i)=>
-    bind(id,[cRed,cPlan,cCont,cMed,cSin,cEq][i]));
+  ['lRed','lPlan','lCont','lMed','lSin','lEq','lFranja'].forEach((id,i)=>
+    bind(id,[cRed,cPlan,cCont,cMed,cSin,cEq,cFranja][i]));
   document.getElementById('lHeat').onchange=ev=>{
     if(cHeat){map.removeLayer(cHeat);cHeat=null;}
     if(ev.target.checked){
@@ -1004,17 +1058,28 @@ function leyenda(){
    +'<span class="swd" style="background:'+cssv('--c-cont')+'"></span>contador (tama\u00f1o = media diaria)'
    +'<span class="swd" style="background:'+cssv('--div-pos')+'"></span>medici\u00f3n SECTRA'
    +'<span class="swd" style="background:'+cssv('--c-sin')+'"></span>siniestro con ciclista'
-   +'<span class="swd" style="background:'+cssv('--c-ok')+'"></span>colegio o sede a menos de 300 m</div>';
+   +'<span class="swd" style="background:'+cssv('--c-ok')+'"></span>colegio o sede a menos de 300 m</div>'
+   +'<div class="grp"><span class="ttl">Franja</span><span class="sw" style="background:'
+   +cssv('--e1')+';opacity:.35;border:1px dashed '+cssv('--e0')+'"></span>'
+   +'300 m en torno a la red existente, el umbral del indicador de cobertura dibujado tal cual</div>';
   document.getElementById('legend').innerHTML=h;
 }
 function dibujaRed(){
   cRed.clearLayers(); cPlan.clearLayers();
+  // Trazo con reborde: una linea oscura ancha debajo y el color encima. Sobre
+  // una coropleta saturada una linea de un solo color se pierde, y era
+  // justamente lo que impedia leer la red contra la capa de cobertura.
+  const casing=cssv('--red-casing')||'#06121C';
   D.red.forEach(t=>{ if(!enFiltro(t.c)) return;
     const dst=t.e===0?cRed:cPlan;
-    const st={pane:'pRed',color:cssv('--e'+t.e),weight:t.e===0?3:1.9,
-      opacity:t.e===0?1:.8,dashArray:t.e>=2?'4,4':null};
-    t.g.forEach(pp=>{const ln=L.polyline(pp,st);
-      ln.bindTooltip('<b>'+(t.n||'(sin nombre de eje)')+'</b><br>'+ETAPAS[t.e]+' \u00b7 '+t.t
+    const ancho=t.e===0?3.4:2.2;
+    const guion=t.e>=2?'5,4':null;
+    t.g.forEach(pp=>{
+      dst.addLayer(L.polyline(pp,{pane:'pRed',color:casing,weight:ancho+2.6,
+        opacity:t.e===0?.95:.7,dashArray:guion,interactive:false}));
+      const ln=L.polyline(pp,{pane:'pRed',color:cssv('--e'+t.e),weight:ancho,
+        opacity:1,dashArray:guion});
+      ln.bindTooltip('<b>'+(t.n||'(sin nombre de eje)')+'</b><br>'+ETAPAS[t.e]+' \u00b7 '+etiq('tipo',t.t)
         +'<br>'+fmt(t.k,2)+' km'+(t.a?' \u00b7 '+t.a:''),{sticky:true});
       dst.addLayer(ln);});});
 }
