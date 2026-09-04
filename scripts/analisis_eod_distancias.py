@@ -149,6 +149,31 @@ def main():
                                   part=round(100 * float(s.get(tr, 0.0)) / tot, 3)))
     t = pd.DataFrame(filas)
     t.to_parquet(AN / "eod_distancias.parquet", index=False)
+
+    # Resumen por ciudad con la distancia SIN binear. La mediana calculada
+    # sobre los tramos de 1 km solo puede caer en x,5 y no sirve para comparar
+    # ciudades entre si; esta se calcula sobre la distancia continua.
+    res = []
+    for (ciu, anio), g in d.groupby(["ciudad", "anio"]):
+        for modo, sel in [("bicicleta", g[g._bici]), ("todos", g)]:
+            if sel.f.sum() <= 0:
+                continue
+            v = sel.dist_km.to_numpy()
+            w = sel.f.to_numpy()
+            m = np.isfinite(v) & np.isfinite(w) & (w > 0)
+            if not m.any():
+                continue
+            vv, ww = v[m], w[m]
+            o = np.argsort(vv)
+            vv, ww = vv[o], ww[o]
+            ac = np.cumsum(ww)
+            res.append(dict(ciudad=str(ciu), anio=int(anio), modo=modo,
+                            dist_media_km=round(float(np.average(vv, weights=ww)), 3),
+                            dist_mediana_km=round(float(vv[np.searchsorted(ac, ac[-1] / 2)]), 3),
+                            viajes=round(float(ww.sum()), 1)))
+    r = pd.DataFrame(res)
+    r.to_parquet(AN / "eod_distancias_resumen.parquet", index=False)
+    print(f"-> eod_distancias_resumen.parquet | {len(r)} filas")
     print(f"-> eod_distancias.parquet | {len(t):,} filas | "
           f"{t.ciudad.nunique()} ciudades")
 

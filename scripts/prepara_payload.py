@@ -252,6 +252,25 @@ def main():
                 {"t": str(r.tramo), "n": nn(r.viajes, 0),
                  "p": nn(100 * r.viajes / tot if tot else 0)} for r in g.itertuples()]
 
+
+    # KPI de la EOD por ciudad. Vienen del indice del tablero de movilidad del
+    # repositorio, mas los que ese indice no resuelve: el tiempo mediano —que
+    # ahi solo esta en 8 de 18 ciudades— y su version por modo, que es la que
+    # permite decir si la bicicleta compite o solo cubre lo que nadie cubre.
+    fk = AN / "eod_kpi.parquet"
+    if fk.exists():
+        kp = pd.read_parquet(fk)
+        campos = ["n_zonas", "viajes", "viajes_persona", "pct_trabajo",
+                  "pct_estudio", "pct_publico", "pct_privado", "pct_caminata",
+                  "tiempo_med_min", "tiempo_med_bici_min",
+                  "dist_media_todos_km", "dist_media_bici_km"]
+        D["eod_kpi"] = {}
+        for r in kp.itertuples():
+            if not isinstance(getattr(r, "ciudad", None), str):
+                continue
+            D["eod_kpi"][r.ciudad] = {c: nn(getattr(r, c, None))
+                                      for c in campos if hasattr(r, c)}
+
     ct = gpd.read_parquet(PQ / "minvu_contadores.parquet")
     D["contadores"] = [{
         "n": (str(r.NOMBRE_CONTADOR) if pd.notna(r.NOMBRE_CONTADOR) else "")[:50],

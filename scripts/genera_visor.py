@@ -845,6 +845,12 @@ function graficos(){
 // siempre al agregado nacional sin que nada fallara.
 const clavesCruce=Object.fromEntries(Object.keys(D.cruces||{}).map(k=>[sinAc(k),k]));
 const clavesDist=Object.fromEntries(Object.keys(D.distancias||{}).map(k=>[sinAc(k),k]));
+const clavesKpi=Object.fromEntries(Object.keys(D.eod_kpi||{}).map(k=>[sinAc(k),k]));
+function kpiDeCiudad(c){
+  if(!c) return {};
+  const k=clavesKpi[sinAc(c.ciudad)];
+  return (k&&D.eod_kpi[k])||{};
+}
 function cruceDe(dim){
   const c=ciudadEod();
   if(c){
@@ -906,19 +912,54 @@ function fichaTerritorio(){
   h+='<div style="font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;'
     +'color:var(--ink-lo);margin:14px 0 4px">Encuesta Origen-Destino</div>';
   if(c){
+    const k=kpiDeCiudad(c);
     h+=f('Encuesta',c.ciudad+' '+c.anio)
       +f('Viajes diarios expandidos',fmt(c.viajes))
+      +(k.viajes_persona!=null?f('Viajes por persona al día',fmt(k.viajes_persona,2)):'')
+      +(k.n_zonas!=null?f('Zonas de la encuesta',fmt(k.n_zonas)):'')
       +f('Viajes en bicicleta',fmt(c.bici_viajes))
       +f('Participación de la bicicleta',pct(c.bici_pct,2))
       +f('Cifra oficial del informe',c.ok?pct(c.ofi,2):'no utilizable')
       +(c.censo?f('Censo sobre las mismas comunas',pct(c.censo,2)):'');
+    // Partición modal y propósito: los KPI del tablero de movilidad del repo.
+    if(k.pct_publico!=null||k.pct_trabajo!=null){
+      h+='<div style="font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;'
+        +'font-weight:700;color:var(--ink-lo);margin:14px 0 4px">Partición modal y propósito</div>'
+        +(k.pct_publico!=null?f('Transporte público',pct(k.pct_publico)):'')
+        +(k.pct_privado!=null?f('Transporte privado',pct(k.pct_privado)):'')
+        +(k.pct_caminata!=null?f('Caminata',pct(k.pct_caminata)):'')
+        +(k.pct_trabajo!=null?f('Viajes al trabajo',pct(k.pct_trabajo)):'')
+        +(k.pct_estudio!=null?f('Viajes al estudio',pct(k.pct_estudio)):'');
+    }
+    // Duración y distancia: el par bicicleta / ciudad es lo que informa.
+    if(k.tiempo_med_min!=null||k.dist_media_bici_km!=null){
+      h+='<div style="font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;'
+        +'font-weight:700;color:var(--ink-lo);margin:14px 0 4px">Duración y distancia</div>'
+        +(k.tiempo_med_min!=null?f('Tiempo mediano, todos los modos',fmt(k.tiempo_med_min,0)+' min'):'')
+        +(k.tiempo_med_bici_min!=null?f('Tiempo mediano en bicicleta',fmt(k.tiempo_med_bici_min,0)+' min'):'')
+        +(k.dist_media_todos_km!=null?f('Distancia media, todos los modos',fmt(k.dist_media_todos_km,2)+' km'):'')
+        +(k.dist_media_bici_km!=null?f('Distancia media en bicicleta',fmt(k.dist_media_bici_km,2)+' km'):'');
+    }
+    const notas=[];
+    if(k.tiempo_med_min&&k.tiempo_med_bici_min&&k.tiempo_med_bici_min<k.tiempo_med_min)
+      notas.push('El viaje en bicicleta dura '+fmt(k.tiempo_med_min-k.tiempo_med_bici_min,0)
+        +' minutos menos que el viaje mediano de la ciudad ('+fmt(k.tiempo_med_bici_min,0)
+        +' contra '+fmt(k.tiempo_med_min,0)+'). No es que la bicicleta sea rápida: es que se usa '
+        +'para los viajes cortos, y son esos los que podría capturar una red continua.');
     const cr=crucesDeCiudad(c);
     const sx=(cr.sexo||[]); const hm=sx.find(x=>x.v==='Hombre'), mj=sx.find(x=>x.v==='Mujer');
     if(hm&&mj&&mj.p>0)
-      h+='<div class="nota" style="border-left:3px solid var(--or);padding-left:9px;'
-        +'font-size:.78rem;color:var(--mut);margin-top:10px">En esta ciudad los hombres pedalean '
-        +fmt(hm.p/mj.p,1)+' veces más que las mujeres ('+pct(hm.p,2)+' de sus viajes contra '
-        +pct(mj.p,2)+').</div>';
+      notas.push('Los hombres pedalean '+fmt(hm.p/mj.p,1)+' veces más que las mujeres ('
+        +pct(hm.p,2)+' de sus viajes contra '+pct(mj.p,2)+').');
+    notas.forEach(n=>{h+='<div style="border-left:3px solid var(--or);padding-left:9px;'
+      +'font-size:.78rem;color:var(--mut);margin-top:10px;line-height:1.45">'+n+'</div>';});
+    h+='<div class="src" style="margin-top:12px">Fuente: Encuesta Origen-Destino de hogares '
+      +'del Ministerio de Transportes. La partición modal y el propósito provienen del índice '
+      +'del tablero de movilidad del repositorio; el tiempo mediano se calcula aquí sobre el '
+      +'microdato, porque ese índice sólo lo trae en 8 de 18 ciudades, y se usa la mediana '
+      +'porque el campo llega con registros de hasta 24 horas. La participación de la '
+      +'bicicleta es la reconstrucción propia, no la del índice: ahí figura en cero en varias '
+      +'ciudades que sí la midieron.</div>';
   } else {
     h+='<div class="vacio" style="color:var(--mut);font-size:.84rem;line-height:1.5">'
       +'No hay una Encuesta Origen-Destino asociada a este territorio. Las 15 encuestas '

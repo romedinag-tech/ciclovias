@@ -273,4 +273,19 @@ Todos de la misma familia: **fallas que no lanzan error**.
   archivo roto que el navegador descarga sin avisar. Pasa cuando el modal se
   abre antes de que el layout asiente. Se comprueba el ancho antes de exportar.
 
+- `[banco]` 2026-09-04 — **El `pct_bicicleta` del indice del tablero de
+  movilidad no es utilizable en todas las ciudades**: marca 0,00 % en Gran
+  Concepcion y Curico, que segun la reconstruccion validada tienen 1,91 % y
+  8,74 %. En la ficha se publica la reconstruccion propia y no ese campo. En
+  cambio la particion modal y el proposito de ese mismo indice si sirven y se
+  usan tal cual.
+- `[banco]` 2026-09-04 — **El tiempo de viaje se calcula aca, no se copia.** El
+  indice trae `tiempo_medio_min` solo en 8 de 18 ciudades, mientras que el campo
+  `tiempo_viaje` del microdato esta completo al 99,9 % en las dieciocho. Se usa
+  la MEDIANA ponderada por el factor y con tope de 300 minutos, porque el campo
+  llega con registros de hasta 1.435 minutos que arrastran cualquier promedio.
+  Resultado util: el viaje en bicicleta dura sistematicamente menos que el
+  mediano de su ciudad (Santiago 15 contra 30 minutos), lo que no dice que sea
+  rapida sino que se usa para los viajes cortos.
+
 <!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=pendiente -->
