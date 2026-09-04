@@ -3,11 +3,19 @@
 Base de datos propia sobre **infraestructura ciclista y uso de la bicicleta en
 Chile**, construida a partir de las fuentes oficiales publicadas por SECTRA /
 Ministerio de Transportes y Telecomunicaciones y por el Ministerio de Vivienda y
-Urbanismo, descargadas íntegramente desde sus servicios ArcGIS REST.
+Urbanismo, descargadas íntegramente desde sus servicios ArcGIS REST, y cruzada
+con el Censo 2024 por manzana, el nivel socioeconómico por zona censal y el
+directorio de establecimientos del MINEDUC.
 
-El inventario completo —capas, número de registros, campos, servicio de origen y
-verificaciones de integridad— está en **[`FUENTES.md`](FUENTES.md)**, que se
-genera automáticamente y no se edita a mano.
+**→ Visor: https://romedinag-tech.github.io/ciclovias/**
+
+Tres documentos, todos generados desde el dato y no editados a mano:
+
+| Documento | Qué contiene |
+|---|---|
+| [`FUENTES.md`](FUENTES.md) | Inventario de capas: registros, campos, servicio de origen y verificaciones de integridad |
+| [`ANALISIS.md`](ANALISIS.md) | Hallazgos sobre cobertura, equidad, accesibilidad y fragmentación |
+| [`CLAUDE.md`](CLAUDE.md) | Método, trampas de las fuentes y decisiones que no conviene rediscutir |
 
 ## Qué contiene
 
