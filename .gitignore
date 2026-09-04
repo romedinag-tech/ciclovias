@@ -1,0 +1,19 @@
+# Trabajo intermedio: nunca al repo
+_work/
+_cache/
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Crudos pesados: el Parquet de data/parquet/ es la fuente de trabajo y ese SI
+# va versionado. El GeoJSON crudo se regenera con scripts/descarga_arcgis.py.
+data/raw/*.geojson
