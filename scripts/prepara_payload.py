@@ -223,6 +223,16 @@ def main():
             D["cruces"].setdefault(str(ciu), {})[str(dim)] = [
                 {"v": str(r.valor), "b": nn(r.bici, 0), "t": nn(r.total, 0),
                  "p": nn(r.part)} for r in g.itertuples()]
+        # curva horaria abierta por proposito, por ciudad y agregada
+        hp = cx[cx.dim == "hora_prop"]
+        D["hora_prop"] = {}
+        for ciu, g in hp.groupby("ciudad"):
+            D["hora_prop"][str(ciu)] = [
+                {"v": str(r.valor), "b": nn(r.bici, 0)} for r in g.itertuples()]
+        hn = hp.groupby("valor").bici.sum().reset_index()
+        D["hora_prop_nac"] = [{"v": str(r.valor), "b": nn(r.bici, 0)}
+                              for r in hn.itertuples()]
+
         nac = cx.groupby(["dim", "valor"]).agg(
             bici=("bici", "sum"), total=("total", "sum")).reset_index()
         nac["part"] = 100 * nac.bici / nac.total.replace(0, np.nan)
@@ -287,9 +297,21 @@ def main():
     # DENTRO del dia asociado a un punto concreto: fuera de punta, punta mañana
     # y punta tarde. Los contadores MINVU solo publican agregados diarios.
     med = gpd.read_parquet(PQ / "sectra_mediciones_antofagasta_talca.parquet")
+    # La comuna de la medicion viene por NOMBRE; se resuelve a cut_com contra
+    # el propio diccionario de comunas para que la capa pueda filtrarse por
+    # territorio como todas las demas.
+    import unicodedata as _ud
+
+    def _k(x):
+        x = _ud.normalize("NFD", str(x)).encode("ascii", "ignore").decode()
+        return "".join(c for c in x.upper() if c.isalnum())
+
+    _cut_por_nombre = {_k(v.get("nom") or ""): c for c, v in D["comunas"].items()}
+
     D["mediciones"] = [{
         "pc": int(r.PC) if pd.notna(r.PC) else None,
         "com": str(r.Comuna or ""),
+        "c": _cut_por_nombre.get(_k(r.Comuna), ""),
         "fp": nn(r.FP, 0), "pm": nn(r.PM, 0), "pt": nn(r.PT, 0),
         "tot": nn(r.Tot_cicl, 0),
         "exp": nn(r.expan_ciclos, 0), "expv": nn(r.expan_veh, 0),

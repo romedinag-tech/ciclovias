@@ -309,6 +309,8 @@ body.mapafull #detalle{height:calc(100vh - 250px)}
     <div class="card">
       <h2><svg class="ic"><use href="#i-trend"/></svg>Kilómetros construidos por año <span class="pill" id="ambInfra"></span></h2>
       <p class="desc">Kilómetros de red <b>existente</b> según el año de ejecución que declara el catastro. Es la forma correcta de leer el ritmo de construcción: restar versiones consecutivas del catastro no lo mide, porque cada actualización incorpora obras antiguas que antes no estaban registradas.</p>
+      <div class="maprow"><label class="lyr" style="gap:6px">
+        <input type="checkbox" id="acAnio"> Mostrar acumulado</label></div>
       <div class="chartbox"><canvas id="cAnio"></canvas></div>
       <div class="src">Fuente: Catastro Nacional de Ciclovías, SECTRA / Programa de Vialidad y Transporte Urbano, MTT (corte julio 2026).</div>
     </div>
@@ -372,6 +374,8 @@ body.mapafull #detalle{height:calc(100vh - 250px)}
     <div class="card">
       <h2><svg class="ic"><use href="#i-clock"/></svg>Distribución horaria del viaje en bicicleta <span class="pill" id="ambHora"></span></h2>
       <p class="desc">Viajes en bicicleta por hora de inicio, <b>calculados desde el microdato de las Encuestas Origen-Destino</b> del Ministerio de Transportes. La hora venía en tres formatos distintos según la ciudad —fecha centinela de Access, fracción de día de Excel y hora simple—, de modo que hubo que normalizarla antes de poder sumarla.</p>
+      <div class="maprow"><label class="lyr" style="gap:6px">
+        <input type="checkbox" id="horaProp"> Abrir por propósito</label></div>
       <div class="chartbox"><canvas id="cHora"></canvas></div>
       <div class="src">Fuente: EOD homologadas del Ministerio de Transportes, 15 ciudades entre 2010 y 2023.</div>
     </div>
@@ -614,6 +618,28 @@ function ciudadEod(){
     ||sinAc(mejor).includes(sinAc(e.ciudad))||sinAc(e.ciudad).includes(sinAc(mejor)))||null;
 }
 
+// Porcentaje escrito sobre cada barra. Sin el hay que leer la altura contra el
+// eje y estimar la proporcion de cabeza, que es justo lo que el grafico deberia
+// ahorrar. Se omite en las barras muy chicas para no ensuciar.
+const pctEnBarras={id:'pctEnBarras',afterDatasetsDraw(ch,args,opt){
+  const idx=(opt&&opt.dataset)||0;
+  const ds=ch.data.datasets[idx]; if(!ds||ds.type==='line') return;
+  const tot=ds.data.reduce((a,b)=>a+(Number(b)||0),0); if(!tot) return;
+  const horiz=ch.options.indexAxis==='y';
+  const c=ch.ctx; c.save();
+  c.font='600 10px Inter, system-ui, sans-serif';
+  c.fillStyle=cssv('--mut');
+  c.textAlign=horiz?'left':'center'; c.textBaseline=horiz?'middle':'bottom';
+  ch.getDatasetMeta(idx).data.forEach((el,i)=>{
+    const val=Number(ds.data[i])||0, pp=100*val/tot;
+    if(pp<1.2) return;
+    const t=pp.toFixed(1).replace('.',',')+' %';
+    if(horiz) c.fillText(t,el.x+5,el.y);
+    else c.fillText(t,el.x,el.y-4);
+  });
+  c.restore();
+}};
+
 // Porcentajes dibujados sobre la dona: sin ellos hay que estimar el reparto a
 // ojo desde el arco, que es justamente lo que un grafico deberia evitar.
 const pctEnDona={id:'pctEnDona',afterDatasetsDraw(ch){
@@ -644,11 +670,25 @@ function graficos(){
   ex.forEach(t=>{const a=parseInt(t.a,10); if(a>=2005&&a<=2030) porAnio[a]=(porAnio[a]||0)+(t.k||0);});
   const anios=Object.keys(porAnio).map(Number).sort((a,b)=>a-b);
   destruir('cAnio');
+  const kmA=anios.map(a=>porAnio[a]), totA=kmA.reduce((x,y)=>x+y,0);
+  let ac=0; const acumA=kmA.map(k=>{ac+=k; return totA?100*ac/totA:0;});
+  const verAcum=(document.getElementById('acAnio')||{}).checked;
   CH.cAnio=new Chart(document.getElementById('cAnio'),{type:'bar',
-    data:{labels:anios,datasets:[{label:'km ejecutados',data:anios.map(a=>porAnio[a]),
-      backgroundColor:cssv('--seq-4'),borderRadius:3}]},
-    options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{
-      label:c=>fmt(c.raw,1)+' km ejecutados'}}}})});
+    data:{labels:anios,datasets:[
+      {label:'km ejecutados',data:kmA,backgroundColor:cssv('--seq-4'),borderRadius:3,
+       yAxisID:'y',order:2},
+      ...(verAcum?[{label:'acumulado (% de la red)',data:acumA,type:'line',
+        borderColor:cssv('--u7'),backgroundColor:cssv('--u7'),pointRadius:2,
+        tension:.25,yAxisID:'y1',order:1}]:[])]},
+    options:opt({plugins:{legend:{display:verAcum,labels:{boxWidth:12,font:{size:10},color:mut}},
+      tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y1'
+        ? 'acumulado '+pct(c.raw,1)
+        : fmt(c.raw,1)+' km ('+pct(totA?100*c.raw/totA:0,1)+' de la red)'}}},
+      scales:{x:{grid:{display:false},ticks:{color:mut,font:{size:10}}},
+        y:{grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
+        ...(verAcum?{y1:{position:'right',min:0,max:100,grid:{display:false},
+          ticks:{color:mut,font:{size:9},callback:v=>v+' %'}}}:{})}}),
+    plugins:[pctEnBarras]});
 
   const kmEt=[0,1,2,3].map(i=>red.filter(t=>t.e===i).reduce((a,t)=>a+(t.k||0),0));
   destruir('cEtapa');
@@ -667,7 +707,9 @@ function graficos(){
   CH.cTipo=new Chart(document.getElementById('cTipo'),{type:'bar',
     data:{labels:tp.map(x=>etiq('tipo',x[0])),datasets:[{data:tp.map(x=>x[1]),
       backgroundColor:cssv('--seq-5'),borderRadius:3}]},
-    options:opt({indexAxis:'y',plugins:{legend:{display:false},
+    plugins:[pctEnBarras],
+    options:opt({indexAxis:'y',layout:{padding:{right:46}},
+      plugins:{legend:{display:false},
       tooltip:{callbacks:{label:c=>fmt(c.raw,1)+' km existentes'}}},
       scales:{x:{grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
               y:{grid:{display:false},ticks:{color:mut,font:{size:10}}}}})});
@@ -680,7 +722,9 @@ function graficos(){
   CH.cEmpl=new Chart(document.getElementById('cEmpl'),{type:'bar',
     data:{labels:em.map(x=>etiq('emplaza',x[0])),datasets:[{data:em.map(x=>x[1]),
       backgroundColor:cssv('--seq-4'),borderRadius:3}]},
-    options:opt({indexAxis:'y',plugins:{legend:{display:false},
+    plugins:[pctEnBarras],
+    options:opt({indexAxis:'y',layout:{padding:{right:46}},
+      plugins:{legend:{display:false},
       tooltip:{callbacks:{label:c=>fmt(c.raw,1)+' km'}}},
       scales:{x:{grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
               y:{grid:{display:false},ticks:{color:mut,font:{size:9}}}}})});
@@ -757,16 +801,35 @@ function graficos(){
     plugins:[pctEnDona]});
 
   destruir('cHora');
+  const porProp=(document.getElementById('horaProp')||{}).checked;
   const hz=cruceDe('hora')||[];
   const elH=document.getElementById('ambHora');
   if(elH) elH.textContent=ciudadEod()?('EOD '+ciudadEod().ciudad+' '+ciudadEod().anio)
                                      :'15 EOD, 2010-2023';
   const hh=Array.from({length:24},(_,i)=>{const f=hz.find(x=>Number(x.v)===i);return f?f.b:0;});
-  CH.cHora=new Chart(document.getElementById('cHora'),{type:'line',
-    data:{labels:Array.from({length:24},(_,i)=>i+'h'),datasets:[{label:'viajes',
-      data:hh,borderColor:cssv('--seq-5'),backgroundColor:cssv('--seq-3')+'55',
-      fill:true,tension:.35,pointRadius:2}]},
-    options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw,0)+' viajes'}}}})});
+  let dsHora;
+  if(porProp){
+    // Abierta por proposito se ve lo que la curva agregada esconde: la punta de
+    // la mañana es trabajo y estudio, y el resto del dia es "otro".
+    const fuente=horaPropDe();
+    const props=[...new Set(fuente.map(x=>String(x.v).split('|')[1]))]
+      .filter(p=>p&&p!=='nan').sort();
+    const col={'Trabajo':cssv('--u7'),'Estudio':cssv('--seq-4'),'Otro':cssv('--u3')};
+    dsHora=props.map((pn,i)=>({label:pn,
+      data:Array.from({length:24},(_,h)=>{
+        const f=fuente.find(x=>x.v===h+'|'+pn); return f?f.b:0;}),
+      backgroundColor:col[pn]||[cssv('--u5'),cssv('--seq-2'),cssv('--div-pos')][i%3],
+      borderWidth:0,stack:'p'}));
+  } else {
+    dsHora=[{label:'viajes',data:hh,borderColor:cssv('--seq-5'),
+      backgroundColor:cssv('--seq-3')+'55',fill:true,tension:.35,pointRadius:2,type:'line'}];
+  }
+  CH.cHora=new Chart(document.getElementById('cHora'),{type:porProp?'bar':'line',
+    data:{labels:Array.from({length:24},(_,i)=>i+'h'),datasets:dsHora},
+    options:opt({plugins:{legend:{display:porProp,labels:{boxWidth:12,font:{size:10},color:mut}},
+      tooltip:{mode:'index',callbacks:{label:c=>c.dataset.label+': '+fmt(c.raw,0)+' viajes'}}},
+      scales:{x:{stacked:porProp,grid:{display:false},ticks:{color:mut,font:{size:10}}},
+        y:{stacked:porProp,grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true}}})});
 
   /* contadores: barras agrupadas de los de mayor flujo */
   destruir('cCont');
@@ -801,15 +864,28 @@ function graficos(){
     if(elD) elD.textContent=dk?(dc.ciudad+' '+dc.anio):'15 EOD, 2010-2023';
     const pB=tramos.map(t=>(fuenteD.bicicleta.find(x=>x.t===t)||{}).p||0);
     const pT=tramos.map(t=>((fuenteD.todos||[]).find(x=>x.t===t)||{}).p||0);
+    // La curva acumulada es la que responde la pregunta util: a que distancia
+    // se alcanza el 70 u 80 % de los viajes. Con solo las barras hay que ir
+    // sumandolas de cabeza.
+    let aB=0; const acB=pB.map(x=>{aB+=x; return aB;});
+    let aT=0; const acT=pT.map(x=>{aT+=x; return aT;});
     CH.cDist=new Chart(document.getElementById('cDist'),{type:'bar',
       data:{labels:tramos.map(t=>t+' km'),datasets:[
-        {label:'bicicleta',data:pB,backgroundColor:cssv('--u7'),borderRadius:3},
-        {label:'todos los modos',data:pT,backgroundColor:cssv('--seq-2'),borderRadius:3}]},
-      options:opt({plugins:{legend:{labels:{boxWidth:12,font:{size:11},color:mut}},
-        tooltip:{callbacks:{label:c=>c.dataset.label+': '+pct(c.raw,1)+' de sus viajes'}}},
+        {label:'bicicleta',data:pB,backgroundColor:cssv('--u7'),borderRadius:3,yAxisID:'y',order:3},
+        {label:'todos los modos',data:pT,backgroundColor:cssv('--seq-2'),borderRadius:3,yAxisID:'y',order:4},
+        {label:'bicicleta, acumulado',data:acB,type:'line',borderColor:cssv('--u7'),
+         backgroundColor:cssv('--u7'),pointRadius:3,tension:.2,yAxisID:'y1',order:1},
+        {label:'todos, acumulado',data:acT,type:'line',borderColor:cssv('--seq-4'),
+         backgroundColor:cssv('--seq-4'),borderDash:[5,4],pointRadius:2,tension:.2,yAxisID:'y1',order:2}]},
+      options:opt({plugins:{legend:{labels:{boxWidth:12,font:{size:10},color:mut}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+pct(c.raw,1)
+          +(c.dataset.yAxisID==='y1'?' acumulado':' de sus viajes')}}},
         scales:{x:{grid:{display:false},ticks:{color:mut,font:{size:10}}},
           y:{title:{display:true,text:'% de los viajes del modo',color:mut,font:{size:10}},
-             grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true}}})});
+             grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
+          y1:{position:'right',min:0,max:100,grid:{display:false},
+             title:{display:true,text:'acumulado',color:mut,font:{size:10}},
+             ticks:{color:mut,font:{size:9},callback:v=>v+' %'}}}})});
     let acum=0,bajo8=0;
     tramos.forEach((t,i)=>{acum+=pB[i]; if(t!=='8+') bajo8+=pB[i];});
     document.getElementById('srcDist').textContent=
@@ -858,6 +934,14 @@ function cruceDe(dim){
     if(k && D.cruces[k] && D.cruces[k][dim]) return D.cruces[k][dim];
   }
   return (D.cruces_nac||{})[dim]||null;
+}
+function horaPropDe(){
+  const c=ciudadEod();
+  if(c){
+    const k=Object.keys(D.hora_prop||{}).find(x=>sinAc(x)===sinAc(c.ciudad));
+    if(k) return D.hora_prop[k];
+  }
+  return D.hora_prop_nac||[];
 }
 function crucesDeCiudad(c){
   if(!c) return {};
@@ -1178,6 +1262,15 @@ function dibujaRed(){
 }
 function dibujaPuntos(){
   cCont.clearLayers(); cSin.clearLayers(); cEq.clearLayers(); cMed.clearLayers();
+  // Las mediciones SECTRA solo existen en Antofagasta y Talca. En cualquier
+  // otro territorio la capa queda vacia y su casilla no significa nada, asi
+  // que se esconde en vez de ofrecer un control que no hace nada.
+  const hayMed=(D.mediciones||[]).some(m=>!m.c||enFiltro(m.c));
+  const lm=document.getElementById('lMed');
+  if(lm&&lm.parentElement){
+    lm.parentElement.style.display=hayMed?'':'none';
+    if(!hayMed&&lm.checked){lm.checked=false;if(map&&map.hasLayer(cMed))map.removeLayer(cMed);}
+  }
   D.contadores.forEach(c=>{ if(!enFiltro(c.c))return;
     const r=c.m?Math.max(5,Math.min(17,Math.sqrt(c.m)*.68)):5;
     L.circleMarker(c.ll,{pane:'pPtos',radius:r,color:'#0f766e',weight:1.4,
@@ -1186,6 +1279,7 @@ function dibujaPuntos(){
       .on('click',ev=>{L.DomEvent.stop(ev);sel={tipo:'contador',d:c};panelDetalle();})
       .addTo(cCont);});
   (D.mediciones||[]).forEach(m=>{
+    if(m.c && !enFiltro(m.c)) return;
     const r=m.tot?Math.max(4,Math.min(14,Math.sqrt(m.tot)*1.1)):4;
     L.circleMarker(m.ll,{pane:'pPtos',radius:r,color:'#14406b',weight:1.2,
       fillColor:cssv('--div-pos'),fillOpacity:.85})
@@ -1454,6 +1548,11 @@ document.getElementById('cbBtn').onclick=ev=>{
   ev.currentTarget.setAttribute('aria-pressed',String(!on));
   rerender();
 };
+
+['acAnio','horaProp'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.onchange=()=>graficos();
+});
 
 document.getElementById('selCruce').onclick=ev=>{
   const x=ev.target.dataset.x; if(!x) return;

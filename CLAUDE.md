@@ -288,4 +288,15 @@ Todos de la misma familia: **fallas que no lanzan error**.
   mediano de su ciudad (Santiago 15 contra 30 minutos), lo que no dice que sea
   rapida sino que se usa para los viajes cortos.
 
+- `[visor]` 2026-09-04 — **La sintaxis del JS generado se valida con Node antes
+  de abrir el navegador**: `node -e "new Function(script)"` sobre el bloque
+  extraido del HTML. Una llave de mas dejaba `scales` como segundo argumento de
+  `opt()` y el visor entero quedaba en blanco; en el navegador eso aparece como
+  un `SyntaxError` sin linea util, mientras que la comprobacion previa cuesta
+  un segundo.
+- `[visor]` 2026-09-04 — **Una casilla de capa que nunca tiene datos es peor que
+  no tenerla.** Las mediciones SECTRA solo existen en Antofagasta y Talca, de
+  modo que su control se esconde cuando el territorio filtrado no tiene ninguna,
+  en vez de ofrecer un interruptor que no hace nada.
+
 <!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=pendiente -->

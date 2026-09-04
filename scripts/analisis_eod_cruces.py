@@ -83,6 +83,25 @@ def main():
         cods_bici = set(sub.index[1:])
         es_bici = gm & g.modo_agregado.astype(str).isin(cods_bici)
 
+        # Cruce hora x proposito: permite abrir la curva horaria y ver que la
+        # punta de la mañana es estudio y la de la tarde trabajo, cosa que la
+        # curva agregada esconde. Va como una dimension mas, con el valor
+        # compuesto "hora|proposito".
+        if "hora" in g.columns and "proposito_agregado_h" in g.columns:
+            hh = hora_valida(g["hora"])
+            gg = g.assign(_h=hh, _p=g.proposito_agregado_h.astype(str),
+                          _b=es_bici).dropna(subset=["_h"])
+            if not gg.empty:
+                tot = gg.groupby(["_h", "_p"]).f.sum()
+                bic = gg[gg._b].groupby(["_h", "_p"]).f.sum()
+                for (h, prop), t in tot.items():
+                    b = float(bic.get((h, prop), 0.0))
+                    filas.append(dict(
+                        ciudad=str(ciu), anio=int(anio), dim="hora_prop",
+                        valor=f"{int(float(h))}|{prop}",
+                        bici=round(b, 1), total=round(float(t), 1),
+                        part=round(100 * b / t, 3) if t > 0 else None))
+
         for dim, col in DIMS.items():
             if col not in g.columns:
                 continue
