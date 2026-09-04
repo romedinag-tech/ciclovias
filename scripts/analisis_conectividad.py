@@ -132,6 +132,12 @@ def main():
     porcom["km_por_componente"] = porcom.km / porcom.n_componentes
     porcom.to_parquet(DIR_OUT / "conectividad_comuna.parquet", index=False)
 
+    # Asignacion tramo -> componente. Sin ella, contar fragmentos de un
+    # territorio filtrado obliga a sumar los conteos comunales, y eso
+    # SOBRECUENTA: una componente que cruza 19 comunas se cuenta 19 veces.
+    # Guardarla permite contar componentes DISTINTAS en cualquier recorte.
+    red[["identifica", "cut_com", col, "km_m"]]         .rename(columns={col: "componente"})         .to_parquet(DIR_OUT / "tramo_componente.parquet", index=False)
+
     print(f"\nA TOLERANCIA {TOL_ELEGIDA} m")
     print(f"  {len(comp):,} componentes en {red.km_m.sum():,.0f} km")
     print(f"  la mayor tiene {comp.km.iloc[0]:,.1f} km "
