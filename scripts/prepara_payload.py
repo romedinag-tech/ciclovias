@@ -187,11 +187,50 @@ def main():
         "censo": nn(r.censo_bici_pct), "ncom": int(r.censo_comunas or 0),
     } for r in eod.sort_values("bici_pct", ascending=False).itertuples()]
 
+    # Perfil horario POR CIUDAD: el contador no publica su curva horaria, asi
+    # que en su ficha se muestra la de la EOD de esa ciudad, declarada como
+    # fuente distinta y como patron urbano, no como medicion del punto.
     perf = pd.read_parquet(AN / "demanda_eod_perfil.parquet")
+    ph = perf[perf.dim == "hora"]
+    D["eod_hora_ciudad"] = {}
+    for ciu, g in ph.groupby("ciudad"):
+        v = [0.0] * 24
+        for _, r in g.iterrows():
+            try:
+                h = int(float(r.valor))
+            except (TypeError, ValueError):
+                continue
+            if 0 <= h < 24:
+                v[h] += float(r.viajes or 0)
+        if sum(v):
+            D["eod_hora_ciudad"][str(ciu)] = [round(x, 1) for x in v]
     D["eod_perfil"] = {}
     for dim in perf.dim.unique():
         s = perf[perf.dim == dim].groupby("valor").viajes.sum().sort_values(ascending=False)
         D["eod_perfil"][dim] = [{"v": str(k), "n": nn(x, 0)} for k, x in s.items()][:30]
+
+
+    # Cruces de la EOD: participacion de la bicicleta por edad, sexo, quintil,
+    # proposito, periodo y hora, por ciudad. Lo que se publica es la
+    # PARTICIPACION dentro de cada grupo, no el volumen: los grupos tienen
+    # tamaños muy distintos y el volumen bruto hablaria del tamaño, no de la
+    # propension a pedalear.
+    fx = AN / "eod_cruces.parquet"
+    if fx.exists():
+        cx = pd.read_parquet(fx)
+        D["cruces"] = {}
+        for (ciu, dim), g in cx.groupby(["ciudad", "dim"]):
+            D["cruces"].setdefault(str(ciu), {})[str(dim)] = [
+                {"v": str(r.valor), "b": nn(r.bici, 0), "t": nn(r.total, 0),
+                 "p": nn(r.part)} for r in g.itertuples()]
+        nac = cx.groupby(["dim", "valor"]).agg(
+            bici=("bici", "sum"), total=("total", "sum")).reset_index()
+        nac["part"] = 100 * nac.bici / nac.total.replace(0, np.nan)
+        D["cruces_nac"] = {}
+        for dim, g in nac.groupby("dim"):
+            D["cruces_nac"][str(dim)] = [
+                {"v": str(r.valor), "b": nn(r.bici, 0), "t": nn(r.total, 0),
+                 "p": nn(r.part)} for r in g.itertuples()]
 
     ct = gpd.read_parquet(PQ / "minvu_contadores.parquet")
     D["contadores"] = [{
@@ -205,6 +244,20 @@ def main():
         "ll": [round(r.geometry.y, DEC), round(r.geometry.x, DEC)],
     } for r in ct.itertuples() if r.geometry is not None]
 
+    # Mediciones SECTRA por punto de control. Es la unica fuente con reparto
+    # DENTRO del dia asociado a un punto concreto: fuera de punta, punta mañana
+    # y punta tarde. Los contadores MINVU solo publican agregados diarios.
+    med = gpd.read_parquet(PQ / "sectra_mediciones_antofagasta_talca.parquet")
+    D["mediciones"] = [{
+        "pc": int(r.PC) if pd.notna(r.PC) else None,
+        "com": str(r.Comuna or ""),
+        "fp": nn(r.FP, 0), "pm": nn(r.PM, 0), "pt": nn(r.PT, 0),
+        "tot": nn(r.Tot_cicl, 0),
+        "exp": nn(r.expan_ciclos, 0), "expv": nn(r.expan_veh, 0),
+        "prop": nn(r.propor_, 3),
+        "ll": [round(r.geometry.y, DEC), round(r.geometry.x, DEC)],
+    } for r in med.itertuples() if r.geometry is not None]
+
     # ------------------------------------------------------------------ #
     # 4. ESPACIAL
     # ------------------------------------------------------------------ #
@@ -214,8 +267,9 @@ def main():
         "e": ETAPAS.index(r.etapa) if r.etapa in ETAPAS else 3,
         "c": (str(r.cut_com) if pd.notna(r.cut_com) else "")[:5],
         "n": (str(r.eje_via) if pd.notna(r.eje_via) else "")[:55],
-        "k": nn(r.km), "t": (str(r.tipo) if pd.notna(r.tipo) else "")[:22],
+        "k": nn(r.km), "t": (str(r.tipo) if pd.notna(r.tipo) else "")[:30],
         "a": (str(r.year_ejecucion) if pd.notna(r.year_ejecucion) else "")[:4],
+        "em": (str(r.emplaza_txt) if pd.notna(r.emplaza_txt) else "")[:18],
         "g": coords_linea(r.geometry),
     } for r in red.itertuples()]
     D["red"] = [t for t in D["red"] if t["g"]]
@@ -228,6 +282,8 @@ def main():
         "pob": nn(r.pob, 0), "bici": nn(r.bici, 0), "bp": nn(r.bici_pct),
         "cob": nn(r.cob_pct), "d": nn(r.dist_m, 0), "nse": nn(r.nse_score),
         "esc": nn(r.escolares, 0),
+        "sini": nn(getattr(r, "sin_bici", None), 0),
+        "sinf": nn(getattr(r, "sin_fall", None), 0),
         "g": coords_poli(r.geometry),
     } for r in gz.itertuples()]
     D["zonas"] = [z for z in D["zonas"] if z["g"]]
@@ -257,6 +313,29 @@ def main():
         "m": int(r.matricula) if pd.notna(r.matricula) else None,
         "ll": [round(float(r.lat), DEC), round(float(r.lon), DEC)],
     } for r in eq.itertuples()]
+
+
+    D["etiquetas"] = {
+        "tipo": {
+            "ciclovía": "Ciclovía",
+            "smp": "Senda multipropósito (MOP)",
+            "s_i": "Sin información",
+            "zona30": "Zona 30",
+            "cicloparque": "Cicloparque",
+            "ciclovía temporal/piloto": "Ciclovía temporal o piloto",
+            "via verde": "Vía verde",
+            "zona30/contraflujo": "Zona 30 con contraflujo",
+            "ciclovía (rediseño cruce)": "Ciclovía con rediseño de cruce",
+        },
+        "emplaza": {"s_i": "Sin información"},
+        "nota_smp": ("«Senda multipropósito» es la infraestructura del MOP en la "
+                     "berma de una ruta rural, compartida por peatones y "
+                     "ciclistas. No está declarada como tal en el servicio: se "
+                     "dedujo del propio catastro, donde los nombres de proyecto "
+                     "de esos tramos dicen «construcción de sendas "
+                     "multipropósito en red vial» y el 88 % de ellos son "
+                     "cartera MOP en camino rural."),
+    }
 
     # ------------------------------------------------------------------ #
     # 5. GEOMETRIA COMUNAL Y METROS (activos en solo lectura)
@@ -297,6 +376,25 @@ def main():
             D["metros"] = json.loads(P_METROS.read_text(encoding="utf-8")).get("metros", {})
         except Exception:                                   # noqa: BLE001
             pass
+
+
+    # Ciudad EOD -> comunas, para que al filtrar por comuna o area metropolitana
+    # el visor sepa que ciudad de la EOD corresponde resaltar.
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from analisis_demanda import CIUDAD_COMUNAS, norm as _norm
+        idx = {}
+        for c, d in D["comunas"].items():
+            idx.setdefault(_norm(d.get("nom") or ""), []).append(c)
+        D["eod_comunas"] = {}
+        for ciu, nombres in CIUDAD_COMUNAS.items():
+            cuts = [c for n in nombres for c in idx.get(_norm(n), [])]
+            if cuts:
+                D["eod_comunas"][ciu] = sorted(cuts)
+    except Exception as e:                                   # noqa: BLE001
+        print("  aviso: no se pudo mapear ciudad EOD -> comunas:", e)
+        D["eod_comunas"] = {}
 
     txt = json.dumps(D, ensure_ascii=False, separators=(",", ":"))
     OUT.write_text(txt, encoding="utf-8")

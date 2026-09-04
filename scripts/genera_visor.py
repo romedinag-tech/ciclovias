@@ -72,6 +72,13 @@ PLANTILLA = r"""<!doctype html>
   --font-display:'Source Serif 4',Georgia,serif;
   --font-ui:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   --font-data:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  /* Escala de uso, 7 clases: rojo = casi nada, amarillo = intermedio,
+     verde = mucho, con dos o tres tonos dentro de cada familia para leer la
+     intensidad sin cambiar de color. Reemplaza la rampa azul secuencial, que
+     no dejaba ver de un vistazo donde se usa mas y donde menos. */
+  --u1:#B2182B; --u2:#E4573C; --u3:#FDAE61; --u4:#FFE08A;
+  --u5:#C3E07E; --u6:#6FBF52; --u7:#177245;
+  /* rampa neutra para los graficos (dato no espacial) */
   --seq-1:#EFF3FB; --seq-2:#C6D9F0; --seq-3:#8CB3DE; --seq-4:#4A80C0; --seq-5:#16365A;
   --div-pos:#2166AC; --div-pos-2:#67A9CF;
   --e0:#16365A; --e1:#2E7EBB; --e2:#7FB3D9; --e3:#B9CFE4;
@@ -87,18 +94,25 @@ PLANTILLA = r"""<!doctype html>
   --card-grad:linear-gradient(180deg,#1a212c 0%,#11161f 100%);
   --card-3d:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -18px 30px rgba(0,0,0,.28),0 18px 34px -12px rgba(0,0,0,.70);
   --led:0 0 6px rgba(255,150,40,.85),0 0 16px rgba(255,106,26,.55),0 0 30px rgba(255,106,26,.30);
+  /* En oscuro se sube luminosidad y se baja saturacion: los mismos siete
+     escalones, legibles sobre fondo casi negro. */
+  --u1:#E4736B; --u2:#F0906B; --u3:#F7B267; --u4:#F5D97A;
+  --u5:#B6D97A; --u6:#7CC15F; --u7:#3E9C5F;
   --seq-1:#16283d; --seq-2:#1d4468; --seq-3:#2f6ea8; --seq-4:#4f9ada; --seq-5:#8fc6f5;
   --div-pos:#7FB9EC; --div-pos-2:#4a86bd;
   --e0:#8fc6f5; --e1:#4f9ada; --e2:#2f6ea8; --e3:#40566f;
   --c-sin:#E4736B; --c-cont:#5CC6BB; --c-ok:#5FBF87;
 }
 :root[data-cb="1"]{
-  --seq-1:#f7f7f7; --seq-2:#cccccc; --seq-3:#969696; --seq-4:#636363; --seq-5:#252525;
+  /* El rojo-amarillo-verde es justamente la combinacion peor para la
+     deuteranopia. La alternativa es viridis, que ordena por luminosidad y se
+     distingue con cualquier tipo de daltonismo. */
+  --u1:#440154; --u2:#414487; --u3:#2a788e; --u4:#22a884;
+  --u5:#7ad151; --u6:#bddf26; --u7:#fde725;
   --e0:#000000; --e1:#5b5b5b; --e2:#969696; --e3:#c9c9c9;
   --c-sin:#d95f02; --c-cont:#1b9e77; --c-ok:#7570b3;
 }
 :root[data-theme="dark"][data-cb="1"]{
-  --seq-1:#1c1c1c; --seq-2:#4d4d4d; --seq-3:#828282; --seq-4:#bdbdbd; --seq-5:#f0f0f0;
   --e0:#ffffff; --e1:#c9c9c9; --e2:#969696; --e3:#5b5b5b;
 }
 *{box-sizing:border-box}
@@ -180,7 +194,22 @@ details.method p{font-size:.845rem;color:var(--mut);margin:9px 0 0;max-width:82c
 .seg button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 #mapInd{padding:6px 9px;border:1px solid var(--line-2);border-radius:var(--r-sm);
   background:var(--surface);color:var(--ink);font-size:.84rem;font-family:var(--font-ui);max-width:340px}
-#map{height:min(70vh,660px);border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-alt)}
+.maplayout{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}
+@media(max-width:1100px){.maplayout{grid-template-columns:1fr}}
+#map{height:min(72vh,680px);border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-alt)}
+#detalle{height:min(72vh,680px);overflow:auto;border:1px solid var(--line);
+  border-radius:var(--r-sm);background:var(--surface-alt);padding:14px 15px}
+#detalle h3{margin:0 0 2px;font-size:1.02rem}
+#detalle .sub{font-size:.78rem;color:var(--mut);margin-bottom:10px}
+#detalle .fila{display:flex;justify-content:space-between;gap:10px;padding:5px 0;
+  border-bottom:1px solid var(--line);font-size:.85rem}
+#detalle .fila span:last-child{font-family:var(--font-data);font-weight:600;color:var(--ink)}
+#detalle .mini{position:relative;height:150px;margin:12px 0 4px}
+#detalle .nota{font-size:.76rem;color:var(--mut);line-height:1.45;margin-top:10px;
+  border-left:3px solid var(--or);padding-left:9px}
+#detalle .vacio{color:var(--mut);font-size:.86rem;line-height:1.5}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;
+  font-weight:700;background:var(--surface);border:1px solid var(--line-2);color:var(--mut)}
 .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:11px;font-size:.78rem;color:var(--mut);align-items:center}
 .legend .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .legend .ttl{font-weight:700;color:var(--ink);font-size:.75rem}
@@ -246,18 +275,18 @@ tbody tr:hover{background:var(--surface-alt)}
   <div class="kpis" id="kInfra"></div>
   <div class="grid2">
     <div class="card">
-      <h2><svg class="ic"><use href="#i-trend"/></svg>Kilómetros construidos por año</h2>
+      <h2><svg class="ic"><use href="#i-trend"/></svg>Kilómetros construidos por año <span class="pill" id="ambInfra"></span></h2>
       <p class="desc">Kilómetros de red <b>existente</b> según el año de ejecución que declara el catastro. Es la forma correcta de leer el ritmo de construcción: restar versiones consecutivas del catastro no lo mide, porque cada actualización incorpora obras antiguas que antes no estaban registradas.</p>
       <div class="chartbox"><canvas id="cAnio"></canvas></div>
       <div class="src">Fuente: Catastro Nacional de Ciclovías, SECTRA / Programa de Vialidad y Transporte Urbano, MTT (corte julio 2026).</div>
     </div>
     <div class="card">
-      <h2><svg class="ic"><use href="#i-road"/></svg>Ciclo de vida de la red</h2>
+      <h2><svg class="ic"><use href="#i-road"/></svg>Ciclo de vida de la red <span class="pill" id="ambEtapa"></span></h2>
       <p class="desc">El catastro cubre las cuatro etapas del ciclo de vida, no solo lo construido. Reportar el total como «la red de Chile» la infla a más del doble.</p>
       <div class="chartbox sm"><canvas id="cEtapa"></canvas></div>
       <h3>Tipo de infraestructura</h3>
       <div class="chartbox sm"><canvas id="cTipo"></canvas></div>
-      <div class="src">Fuente: SECTRA/MTT. «smp» = servicio de movilidad particular; «s_i» = sin información.</div>
+      <div class="src" id="srcTipo">Fuente: SECTRA/MTT.</div>
     </div>
   </div>
   <div class="grid2">
@@ -270,7 +299,7 @@ tbody tr:hover{background:var(--surface-alt)}
       </details>
     </div>
     <div class="card">
-      <h2><svg class="ic"><use href="#i-road"/></svg>Emplazamiento de la red existente</h2>
+      <h2><svg class="ic"><use href="#i-road"/></svg>Emplazamiento de la red existente <span class="pill" id="ambEmpl"></span></h2>
       <p class="desc">Dónde va físicamente la ciclovía. El emplazamiento es la variable de diseño que el análisis de contadores de MINVU (2018) asoció con las mayores diferencias de uso.</p>
       <div class="chartbox"><canvas id="cEmpl"></canvas></div>
       <h3>Evolución del catastro entre cortes</h3>
@@ -290,7 +319,7 @@ tbody tr:hover{background:var(--surface-alt)}
   <div class="kpis" id="kDem"></div>
   <div class="grid2">
     <div class="card">
-      <h2><svg class="ic"><use href="#i-users"/></svg>Participación de la bicicleta según la EOD</h2>
+      <h2><svg class="ic"><use href="#i-users"/></svg>Participación de la bicicleta según la EOD <span class="pill" id="ambEod"></span></h2>
       <p class="desc">Porcentaje de viajes en bicicleta sobre el total de viajes de cada Encuesta Origen-Destino. La barra es la reconstrucción propia; la cruz, la cifra oficial del informe del estudio, cuando ese índice resulta utilizable.</p>
       <div class="chartbox lg"><canvas id="cEod"></canvas></div>
       <details class="method"><summary>De dónde sale la bicicleta en la EOD, y cómo se validó</summary>
@@ -309,18 +338,41 @@ tbody tr:hover{background:var(--surface-alt)}
   </div>
   <div class="grid2">
     <div class="card">
-      <h2><svg class="ic"><use href="#i-clock"/></svg>Distribución horaria del viaje en bicicleta</h2>
-      <p class="desc">Viajes en bicicleta por hora de inicio, sumando todas las EOD reconstruidas. Una forma de doble punta indica viaje obligado —trabajo y estudio— más que recreativo.</p>
+      <h2><svg class="ic"><use href="#i-clock"/></svg>Distribución horaria del viaje en bicicleta <span class="pill" id="ambHora"></span></h2>
+      <p class="desc">Viajes en bicicleta por hora de inicio, <b>calculados desde el microdato de las Encuestas Origen-Destino</b> del Ministerio de Transportes. La hora venía en tres formatos distintos según la ciudad —fecha centinela de Access, fracción de día de Excel y hora simple—, de modo que hubo que normalizarla antes de poder sumarla.</p>
       <div class="chartbox"><canvas id="cHora"></canvas></div>
       <div class="src">Fuente: EOD homologadas del Ministerio de Transportes, 15 ciudades entre 2010 y 2023.</div>
     </div>
     <div class="card">
-      <h2><svg class="ic"><use href="#i-gauge"/></svg>Contadores automáticos de flujo</h2>
-      <p class="desc">Cada punto es un contador: en el eje horizontal su promedio de día hábil, en el vertical el de fin de semana. La diagonal marca la igualdad; por debajo de ella el uso cae el fin de semana, señal de viaje obligado, y por encima el uso es predominantemente recreativo.</p>
+      <h2><svg class="ic"><use href="#i-gauge"/></svg>Contadores automáticos de flujo <span class="pill" id="ambCont"></span></h2>
+      <p class="desc">Cuánto se pedalea de verdad en cada punto medido, y si ese uso es viaje obligado o recreativo. Cada par de barras es un contador: la oscura, su promedio de día hábil; la clara, el de fin de semana. Cuando la clara es más corta el eje sirve para ir al trabajo o al estudio; cuando la supera, el uso es de paseo. Se muestran los doce contadores de mayor flujo del territorio seleccionado.</p>
       <div class="chartbox"><canvas id="cCont"></canvas></div>
       <div class="src" id="srcCont"></div>
     </div>
   </div>
+  <div class="grid2">
+    <div class="card">
+      <h2><svg class="ic"><use href="#i-users"/></svg>Quién pedalea <span class="pill" id="ambCruce"></span></h2>
+      <p class="desc">Qué proporción de los viajes de cada grupo se hace en bicicleta. Se muestra la <b>participación dentro del grupo</b> y no el volumen, porque los grupos tienen tamaños muy distintos: el conteo bruto hablaría del tamaño del grupo antes que de su propensión a pedalear.</p>
+      <div class="maprow">
+        <span class="seglab">Cruce</span>
+        <div class="seg" id="selCruce">
+          <button data-x="sexo" class="on">Sexo</button>
+          <button data-x="edad">Edad</button>
+          <button data-x="quintil">Ingreso</button>
+          <button data-x="proposito">Propósito</button>
+        </div>
+      </div>
+      <div class="chartbox"><canvas id="cCruce"></canvas></div>
+      <div class="src" id="srcCruce"></div>
+    </div>
+    <div class="card">
+      <h2><svg class="ic"><use href="#i-building"/></svg>Ficha del territorio <span class="pill" id="ambFicha"></span></h2>
+      <p class="desc">Lo que dicen el Censo 2024 y la EOD sobre el territorio seleccionado en la barra de filtros.</p>
+      <div id="fichaCiudad"></div>
+    </div>
+  </div>
+
   <div class="card">
     <h2><svg class="ic"><use href="#i-building"/></svg>Uso de la bicicleta por comuna (Censo 2024)</h2>
     <p class="desc">Personas que declaran la bicicleta como modo principal de transporte al trabajo o al estudio, y qué proporción representan de quienes declaran algún modo.</p>
@@ -334,13 +386,13 @@ tbody tr:hover{background:var(--surface-alt)}
     <h2><svg class="ic"><use href="#i-map"/></svg>Mapa <span class="desc" id="mapHint" style="margin:0;font-weight:400"></span></h2>
     <p class="desc" id="mapDesc"></p>
     <div class="maprow">
-      <span class="seglab">Unidad</span>
-      <div class="seg" id="mapUnit">
-        <button data-u="comuna" class="on">Comuna</button>
-        <button data-u="zona">Zona censal</button>
-      </div>
       <span class="seglab">Indicador</span>
       <select id="mapInd"></select>
+      <span class="seglab">Coropleta</span>
+      <div class="seg" id="mapCoro">
+        <button data-c="on" class="on">Mostrar</button>
+        <button data-c="off">Ocultar</button>
+      </div>
       <span class="seglab">Fondo</span>
       <div class="seg" id="mapBase">
         <button data-b="claro" class="on">Claro</button>
@@ -350,16 +402,23 @@ tbody tr:hover{background:var(--surface-alt)}
     </div>
     <div class="maprow lyr">
       <label><input type="checkbox" id="lRed" checked> Red existente</label>
-      <label><input type="checkbox" id="lPlan"> Cartera futura</label>
-      <label><input type="checkbox" id="lCont"> Contadores de flujo</label>
+      <label><input type="checkbox" id="lPlan" checked> Cartera futura</label>
+      <label><input type="checkbox" id="lCont" checked> Contadores de flujo</label>
+      <label><input type="checkbox" id="lMed"> Mediciones SECTRA</label>
       <label><input type="checkbox" id="lSin"> Siniestros con ciclista</label>
       <label><input type="checkbox" id="lHeat"> Concentración de siniestros</label>
       <label><input type="checkbox" id="lEq"> Colegios y educación superior</label>
     </div>
-    <div id="map"></div>
-    <div class="legend" id="legend"></div>
-    <div class="src">La coropleta se dibuja por quintiles del indicador dentro del territorio filtrado. Sobre el fondo satelital el relleno baja su opacidad para que la imagen se lea por debajo. Las distancias son euclidianas desde el centroide de la unidad, no medidas por la red vial.</div>
+    <div class="maplayout">
+      <div>
+        <div id="map"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div id="detalle"></div>
+    </div>
+    <div class="src">La unidad territorial es la <b>zona censal</b>: la comuna resulta demasiado gruesa para ver diferencias dentro de una ciudad, que es donde ocurren. La coropleta se corta por quintiles del indicador dentro del territorio filtrado y puede apagarse para leer la red sin que el relleno la tape. Las distancias son euclidianas desde el centroide de la manzana, no medidas por la red vial.</div>
   </div>
+
   <div class="grid2">
     <div class="card">
       <h2><svg class="ic"><use href="#i-alert"/></svg>Siniestros con ciclista</h2>
@@ -464,41 +523,102 @@ function corr(a,b){
   return sab/Math.sqrt(sa*sb);
 }
 
+// Etiqueta del territorio activo: los graficos dejan de ser nacionales fijos y
+// se recalculan con el filtro, asi que hay que decir siempre sobre que se esta
+// mirando o las cifras se leen mal.
+function ambito(){
+  if(F.cut) return (D.comunas[F.cut]||{}).nom||'comuna';
+  if(F.metro) return F.metroNom;
+  if(F.region) return F.region;
+  return 'Chile';
+}
+function redFiltrada(){ return D.red.filter(t=>enFiltro(t.c)); }
+function etiq(grupo,v){
+  const m=(D.etiquetas||{})[grupo]||{};
+  const x=m[v]||v||'sin dato';
+  return x.charAt(0).toUpperCase()+x.slice(1);
+}
+// Ciudad de la EOD que corresponde al territorio filtrado, si alguna: permite
+// resaltarla en el grafico comparativo y mostrar sus cruces.
+function ciudadEod(){
+  const cuts=F.cut?[F.cut]:(F.metro||null);
+  if(!cuts) return null;
+  let mejor=null,mx=0;
+  for(const [ciu,cs] of Object.entries(D.eod_comunas||{})){
+    const n=cs.filter(c=>cuts.includes(c)).length;
+    if(n>mx){mx=n;mejor=ciu;}
+  }
+  if(!mejor) return null;
+  return (D.eod||[]).find(e=>sinAc(e.ciudad)===sinAc(mejor)
+    ||sinAc(mejor).includes(sinAc(e.ciudad))||sinAc(e.ciudad).includes(sinAc(mejor)))||null;
+}
+
+// Porcentajes dibujados sobre la dona: sin ellos hay que estimar el reparto a
+// ojo desde el arco, que es justamente lo que un grafico deberia evitar.
+const pctEnDona={id:'pctEnDona',afterDatasetsDraw(ch){
+  const {ctx:c}=ch, ds=ch.data.datasets[0];
+  const tot=ds.data.reduce((a,b)=>a+(b||0),0); if(!tot) return;
+  c.save(); c.font='600 11px Inter, system-ui, sans-serif';
+  c.textAlign='center'; c.textBaseline='middle';
+  ch.getDatasetMeta(0).data.forEach((arc,i)=>{
+    const v=ds.data[i]||0, p=100*v/tot; if(p<4) return;
+    const {x,y}=arc.tooltipPosition();
+    c.fillStyle='#fff'; c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=2.5;
+    const t=p.toFixed(1).replace('.',',')+' %';
+    c.strokeText(t,x,y); c.fillText(t,x,y);
+  });
+  c.restore();
+}};
+
 function graficos(){
   const {mut,line}=ctx();
   const ec=[cssv('--e0'),cssv('--e1'),cssv('--e2'),cssv('--e3')];
+  const amb=ambito(), red=redFiltrada();
+  ['ambInfra','ambEtapa','ambEmpl','ambEod','ambCont','ambHora','ambCruce','ambFicha']
+    .forEach(id=>{const el=document.getElementById(id); if(el) el.textContent=amb;});
 
+  /* ---------------- infraestructura, toda desde la red filtrada ------------ */
+  const ex=red.filter(t=>t.e===0);
+  const porAnio={};
+  ex.forEach(t=>{const a=parseInt(t.a,10); if(a>=2005&&a<=2030) porAnio[a]=(porAnio[a]||0)+(t.k||0);});
+  const anios=Object.keys(porAnio).map(Number).sort((a,b)=>a-b);
   destruir('cAnio');
-  const ay=D.por_anio.filter(x=>x.anio>=2005);
   CH.cAnio=new Chart(document.getElementById('cAnio'),{type:'bar',
-    data:{labels:ay.map(x=>x.anio),datasets:[{label:'km ejecutados',data:ay.map(x=>x.km),
-      backgroundColor:cssv('--e1'),borderRadius:3}]},
+    data:{labels:anios,datasets:[{label:'km ejecutados',data:anios.map(a=>porAnio[a]),
+      backgroundColor:cssv('--seq-4'),borderRadius:3}]},
     options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{
-      label:c=>fmt(c.raw,1)+' km · '+fmt(ay[c.dataIndex].tramos)+' tramos'}}}})});
+      label:c=>fmt(c.raw,1)+' km ejecutados'}}}})});
 
+  const kmEt=[0,1,2,3].map(i=>red.filter(t=>t.e===i).reduce((a,t)=>a+(t.k||0),0));
   destruir('cEtapa');
   CH.cEtapa=new Chart(document.getElementById('cEtapa'),{type:'doughnut',
-    data:{labels:D.por_etapa.map(x=>x.etapa),datasets:[{data:D.por_etapa.map(x=>x.km),
-      backgroundColor:ec,borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
+    data:{labels:ETAPAS,datasets:[{data:kmEt,backgroundColor:ec,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'54%',
       plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:11},color:mut}},
-      tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw,1)+' km'}}}}});
+      tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw,1)+' km'}}}},
+    plugins:[pctEnDona]});
 
+  const agrupa=(arr,campo)=>{const o={};
+    arr.forEach(t=>{const k=t[campo]||'s_i'; o[k]=(o[k]||0)+(t.k||0);});
+    return Object.entries(o).sort((a,b)=>b[1]-a[1]);};
+  const tp=agrupa(ex,'t').slice(0,8);
   destruir('cTipo');
-  const tp=D.por_tipo.slice(0,8);
   CH.cTipo=new Chart(document.getElementById('cTipo'),{type:'bar',
-    data:{labels:tp.map(x=>x.tipo),datasets:[{label:'km existentes',data:tp.map(x=>x.km_existentes),
-      backgroundColor:cssv('--e0'),borderRadius:3}]},
+    data:{labels:tp.map(x=>etiq('tipo',x[0])),datasets:[{data:tp.map(x=>x[1]),
+      backgroundColor:cssv('--seq-5'),borderRadius:3}]},
     options:opt({indexAxis:'y',plugins:{legend:{display:false},
       tooltip:{callbacks:{label:c=>fmt(c.raw,1)+' km existentes'}}},
       scales:{x:{grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
               y:{grid:{display:false},ticks:{color:mut,font:{size:10}}}}})});
+  const st=document.getElementById('srcTipo');
+  if(st) st.innerHTML='Fuente: Catastro Nacional de Ciclovías, SECTRA/MTT. '
+    +((D.etiquetas||{}).nota_smp||'');
 
+  const em=agrupa(ex,'em').slice(0,8);
   destruir('cEmpl');
-  const em=D.por_emplazamiento.slice(0,8);
   CH.cEmpl=new Chart(document.getElementById('cEmpl'),{type:'bar',
-    data:{labels:em.map(x=>x.emplaza),datasets:[{label:'km',data:em.map(x=>x.km),
-      backgroundColor:cssv('--e1'),borderRadius:3}]},
+    data:{labels:em.map(x=>etiq('emplaza',x[0])),datasets:[{data:em.map(x=>x[1]),
+      backgroundColor:cssv('--seq-4'),borderRadius:3}]},
     options:opt({indexAxis:'y',plugins:{legend:{display:false},
       tooltip:{callbacks:{label:c=>fmt(c.raw,1)+' km'}}},
       scales:{x:{grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
@@ -507,7 +627,8 @@ function graficos(){
   destruir('cEvol');
   CH.cEvol=new Chart(document.getElementById('cEvol'),{type:'bar',
     data:{labels:D.evolucion.map(x=>x.corte),datasets:[
-      {label:'km existentes',data:D.evolucion.map(x=>x.km),backgroundColor:cssv('--e1'),borderRadius:3,yAxisID:'y'},
+      {label:'km existentes (país)',data:D.evolucion.map(x=>x.km),
+       backgroundColor:cssv('--seq-3'),borderRadius:3,yAxisID:'y'},
       {label:'comunas con red',data:D.evolucion.map(x=>x.comunas),type:'line',
        borderColor:cssv('--seq-5'),backgroundColor:cssv('--seq-5'),tension:.3,yAxisID:'y1'}]},
     options:opt({scales:{x:{grid:{display:false},ticks:{color:mut,font:{size:10}}},
@@ -520,19 +641,24 @@ function graficos(){
   CH.cFrag=new Chart(document.getElementById('cFrag'),{type:'bubble',
     data:{datasets:[{data:cf,backgroundColor:cssv('--seq-4')+'bb',borderColor:cssv('--seq-5')}]},
     options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{
-      label:c=>`${c.raw.n}: ${fmt(c.raw.x,1)} km · ${fmt(c.raw.y,0)} % en el fragmento mayor`}}},
+      label:c=>c.raw.n+': '+fmt(c.raw.x,1)+' km · '+fmt(c.raw.y,0)+' % en el fragmento mayor'}}},
       scales:{x:{title:{display:true,text:'km de red existente',color:mut,font:{size:10}},
                  grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
               y:{title:{display:true,text:'% de km en la componente mayor',color:mut,font:{size:10}},
                  grid:{color:line},ticks:{color:mut,font:{size:10}},min:0,max:100}}})});
 
+  /* ---------------------------- demanda ---------------------------------- */
+  const e=D.eod, ciu=ciudadEod();
   destruir('cEod');
-  const e=D.eod;
   CH.cEod=new Chart(document.getElementById('cEod'),{type:'bar',
     data:{labels:e.map(x=>x.ciudad+' '+x.anio),datasets:[
-      {label:'reconstrucción propia',data:e.map(x=>x.bici_pct),backgroundColor:cssv('--seq-4'),borderRadius:3},
+      {label:'reconstrucción propia',data:e.map(x=>x.bici_pct),borderRadius:3,
+       backgroundColor:e.map(x=>(ciu&&x.ciudad===ciu.ciudad)?cssv('--u6'):cssv('--seq-3')),
+       borderColor:e.map(x=>(ciu&&x.ciudad===ciu.ciudad)?cssv('--u7'):'transparent'),
+       borderWidth:e.map(x=>(ciu&&x.ciudad===ciu.ciudad)?2:0)},
       {label:'cifra oficial del informe',data:e.map(x=>x.ok?x.ofi:null),type:'scatter',
-       backgroundColor:cssv('--seq-5'),borderColor:cssv('--seq-5'),pointStyle:'crossRot',radius:7,borderWidth:2}]},
+       backgroundColor:cssv('--seq-5'),borderColor:cssv('--seq-5'),
+       pointStyle:'crossRot',radius:7,borderWidth:2}]},
     options:opt({indexAxis:'y',
       plugins:{legend:{labels:{boxWidth:12,font:{size:11},color:mut}},
         tooltip:{callbacks:{afterLabel:c=>e[c.dataIndex]&&!e[c.dataIndex].ok?'índice oficial no utilizable':''}}},
@@ -544,56 +670,68 @@ function graficos(){
   const ec2=e.filter(x=>x.censo!==null&&x.censo!==undefined);
   CH.cEodCenso=new Chart(document.getElementById('cEodCenso'),{type:'scatter',
     data:{datasets:[{data:ec2.map(x=>({x:x.bici_pct,y:x.censo,n:x.ciudad})),
-      backgroundColor:cssv('--seq-4'),borderColor:cssv('--seq-5'),pointRadius:6}]},
+      pointRadius:ec2.map(x=>(ciu&&x.ciudad===ciu.ciudad)?9:6),
+      backgroundColor:ec2.map(x=>(ciu&&x.ciudad===ciu.ciudad)?cssv('--u6'):cssv('--seq-3')),
+      borderColor:cssv('--seq-5')}]},
     options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{
-      label:c=>`${c.raw.n}: EOD ${fmt(c.raw.x,2)} % · Censo ${fmt(c.raw.y,2)} %`}}},
+      label:c=>c.raw.n+': EOD '+fmt(c.raw.x,2)+' % · Censo '+fmt(c.raw.y,2)+' %'}}},
       scales:{x:{title:{display:true,text:'EOD reconstruida (%)',color:mut,font:{size:10}},
                  grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
               y:{title:{display:true,text:'Censo 2024 (%)',color:mut,font:{size:10}},
                  grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true}}})});
   const r=corr(ec2.map(x=>x.bici_pct),ec2.map(x=>x.censo));
   document.getElementById('srcCorr').textContent=
-    `Correlación de Pearson entre ambas fuentes sobre ${ec2.length} ciudades: r = ${fmt(r,3)}. `+
-    `Fuentes: EOD del Ministerio de Transportes y Censo 2024 (INE).`;
+    'Correlación de Pearson entre ambas fuentes sobre '+ec2.length+' ciudades: r = '+fmt(r,3)
+    +'. Fuentes: EOD del Ministerio de Transportes y Censo 2024 (INE).';
 
   destruir('cProp');
-  const pr=(D.eod_perfil.proposito||[]).slice(0,7);
+  const pr=(cruceDe('proposito')||[]).slice(0,7);
   CH.cProp=new Chart(document.getElementById('cProp'),{type:'doughnut',
-    data:{labels:pr.map(x=>x.v),datasets:[{data:pr.map(x=>x.n),
+    data:{labels:pr.map(x=>x.v),datasets:[{data:pr.map(x=>x.b),
       backgroundColor:[cssv('--seq-5'),cssv('--seq-4'),cssv('--seq-3'),cssv('--seq-2'),
         cssv('--div-pos'),cssv('--div-pos-2'),cssv('--seq-1')],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'56%',
+    options:{responsive:true,maintainAspectRatio:false,cutout:'52%',
       plugins:{legend:{position:'right',labels:{boxWidth:11,font:{size:10},color:mut}},
-      tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw,0)+' viajes'}}}}});
+      tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw,0)+' viajes'}}}},
+    plugins:[pctEnDona]});
 
   destruir('cHora');
-  const hh=Array.from({length:24},(_,i)=>{
-    const f=(D.eod_perfil.hora||[]).find(x=>Number(x.v)===i); return f?f.n:0;});
+  const hz=cruceDe('hora')||[];
+  const elH=document.getElementById('ambHora');
+  if(elH) elH.textContent=ciudadEod()?('EOD '+ciudadEod().ciudad+' '+ciudadEod().anio)
+                                     :'15 EOD, 2010-2023';
+  const hh=Array.from({length:24},(_,i)=>{const f=hz.find(x=>Number(x.v)===i);return f?f.b:0;});
   CH.cHora=new Chart(document.getElementById('cHora'),{type:'line',
     data:{labels:Array.from({length:24},(_,i)=>i+'h'),datasets:[{label:'viajes',
       data:hh,borderColor:cssv('--seq-5'),backgroundColor:cssv('--seq-3')+'55',
       fill:true,tension:.35,pointRadius:2}]},
     options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw,0)+' viajes'}}}})});
 
+  /* contadores: barras agrupadas de los de mayor flujo */
   destruir('cCont');
-  const co=D.contadores.filter(c=>enFiltro(c.c)&&c.hab!==null&&c.fds!==null);
-  const mx=Math.max(10,...co.map(c=>Math.max(c.hab,c.fds)));
-  CH.cCont=new Chart(document.getElementById('cCont'),{type:'scatter',
-    data:{datasets:[
-      {label:'contador',data:co.map(c=>({x:c.hab,y:c.fds,n:c.n})),
-       backgroundColor:cssv('--c-cont'),pointRadius:5},
-      {label:'igualdad hábil = fin de semana',type:'line',data:[{x:0,y:0},{x:mx,y:mx}],
-       borderColor:cssv('--mut'),borderDash:[5,4],pointRadius:0,borderWidth:1.2}]},
-    options:opt({plugins:{legend:{labels:{boxWidth:12,font:{size:10},color:mut}},
-      tooltip:{callbacks:{label:c=>c.raw.n?`${c.raw.n}: hábil ${fmt(c.raw.x,0)} · fin de semana ${fmt(c.raw.y,0)}`:''}}},
-      scales:{x:{title:{display:true,text:'promedio día hábil (pasadas)',color:mut,font:{size:10}},
+  const co=D.contadores.filter(c=>enFiltro(c.c)&&c.hab!==null&&c.fds!==null)
+    .sort((a,b)=>(b.m||0)-(a.m||0)).slice(0,12);
+  CH.cCont=new Chart(document.getElementById('cCont'),{type:'bar',
+    data:{labels:co.map(c=>c.n.length>26?c.n.slice(0,25)+'…':c.n),datasets:[
+      {label:'día hábil',data:co.map(c=>c.hab),backgroundColor:cssv('--seq-5'),borderRadius:3},
+      {label:'fin de semana',data:co.map(c=>c.fds),backgroundColor:cssv('--seq-3'),borderRadius:3}]},
+    options:opt({indexAxis:'y',
+      plugins:{legend:{labels:{boxWidth:12,font:{size:10},color:mut}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.raw,0)+' pasadas'}}},
+      scales:{x:{title:{display:true,text:'pasadas promedio por día',color:mut,font:{size:10}},
                  grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true},
-              y:{title:{display:true,text:'promedio fin de semana',color:mut,font:{size:10}},
-                 grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true}}})});
-  const bajo=co.filter(c=>c.fds<c.hab).length;
-  document.getElementById('srcCont').textContent=co.length
-    ? `${co.length} contadores con ambos promedios. En ${bajo} de ellos (${fmt(100*bajo/co.length,0)} %) el uso baja el fin de semana. Fuente: contadores automáticos de flujo, MINVU–DDU.`
-    : 'No hay contadores en el territorio seleccionado.';
+              y:{grid:{display:false},ticks:{color:mut,font:{size:9}}}}})});
+  const todos=D.contadores.filter(c=>enFiltro(c.c)&&c.hab!==null&&c.fds!==null);
+  const bajo=todos.filter(c=>c.fds<c.hab).length;
+  document.getElementById('srcCont').textContent=todos.length
+    ? todos.length+' contadores con ambos promedios en '+amb+'; se grafican los '
+      +co.length+' de mayor flujo. En '+bajo+' de ellos ('+fmt(100*bajo/todos.length,0)
+      +' %) el uso baja el fin de semana, señal de viaje obligado. Fuente: contadores automáticos de flujo, MINVU–DDU.'
+    : 'No hay contadores de flujo en '+amb+'.';
+
+  /* cruces: quien pedalea */
+  dibujaCruce();
+  fichaTerritorio();
 
   destruir('cSinAnio');
   CH.cSinAnio=new Chart(document.getElementById('cSinAnio'),{type:'bar',
@@ -607,6 +745,95 @@ function graficos(){
     data:{labels:Array.from({length:24},(_,i)=>i+'h'),datasets:[{label:'siniestros',data:sh,
       backgroundColor:cssv('--c-sin'),borderRadius:2}]},
     options:opt({plugins:{legend:{display:false}}})});
+}
+
+// Cruce de la ciudad filtrada si existe; si no, el agregado de las 15 EOD.
+// La busqueda va por clave normalizada: el nombre de la ciudad llega CON tilde
+// desde el dataset analitico ("Gran Concepcion" con acento) y SIN tilde desde
+// el nombre de carpeta que usa el resto del visor. Comparar literal hacia caer
+// siempre al agregado nacional sin que nada fallara.
+const clavesCruce=Object.fromEntries(Object.keys(D.cruces||{}).map(k=>[sinAc(k),k]));
+function cruceDe(dim){
+  const c=ciudadEod();
+  if(c){
+    const k=clavesCruce[sinAc(c.ciudad)];
+    if(k && D.cruces[k] && D.cruces[k][dim]) return D.cruces[k][dim];
+  }
+  return (D.cruces_nac||{})[dim]||null;
+}
+function crucesDeCiudad(c){
+  if(!c) return {};
+  const k=clavesCruce[sinAc(c.ciudad)];
+  return (k && D.cruces[k]) || {};
+}
+let cruceAct='sexo';
+function dibujaCruce(){
+  const {mut,line}=ctx();
+  const dat=(cruceDe(cruceAct)||[]).filter(x=>x.t>0&&x.v!=='nan'&&x.v!=='None');
+  const orden={quintil:['1.0','2.0','3.0','4.0','5.0'],
+    edad:['0-5','6-14','15-24','25-44','45-64','65+']};
+  if(orden[cruceAct]) dat.sort((a,b)=>orden[cruceAct].indexOf(a.v)-orden[cruceAct].indexOf(b.v));
+  else dat.sort((a,b)=>b.p-a.p);
+  const nombre=v=>cruceAct==='quintil'?('Quintil '+String(v).replace('.0','')):v;
+  destruir('cCruce');
+  CH.cCruce=new Chart(document.getElementById('cCruce'),{type:'bar',
+    data:{labels:dat.map(x=>nombre(x.v)),datasets:[{data:dat.map(x=>x.p),
+      backgroundColor:cssv('--u6'),borderRadius:3}]},
+    options:opt({plugins:{legend:{display:false},tooltip:{callbacks:{
+      label:c=>pct(c.raw,2)+' de sus viajes · '+fmt(dat[c.dataIndex].b,0)+' de '
+        +fmt(dat[c.dataIndex].t,0)+' viajes'}}},
+      scales:{x:{grid:{display:false},ticks:{color:mut,font:{size:10}}},
+        y:{title:{display:true,text:'% de los viajes del grupo',color:mut,font:{size:10}},
+           grid:{color:line},ticks:{color:mut,font:{size:10}},beginAtZero:true}}})});
+  const c=ciudadEod();
+  document.getElementById('srcCruce').textContent=
+    (c?('EOD de '+c.ciudad+' '+c.anio+'.'):'Agregado de las 15 EOD reconstruidas (2010-2023).')
+    +' El modo bicicleta se reconstruye separando el grupo no motorizado; ver el método en la tarjeta de arriba.';
+}
+
+function fichaTerritorio(){
+  const el=document.getElementById('fichaCiudad'); if(!el) return;
+  const o=comunasFiltradas();
+  const pob=Object.values(o).reduce((a,d)=>a+(d.pob||0),0);
+  const bici=Object.values(o).reduce((a,d)=>a+(d.bici||0),0);
+  const modos=Object.values(o).reduce((a,d)=>a+(d.viajes_modo||0),0);
+  const bcub=Object.values(o).reduce((a,d)=>a+((d.cobb||0)/100*(d.bici||0)),0);
+  const sini=Object.values(o).reduce((a,d)=>a+(d.sini||0),0);
+  const kme=Object.values(o).reduce((a,d)=>a+(d.kme||0),0);
+  const c=ciudadEod();
+  const f=(k,v)=>'<div class="fila"><span>'+k+'</span><span>'+v+'</span></div>';
+  let h='<div style="font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;'
+      +'font-weight:700;color:var(--ink-lo);margin-bottom:4px">Censo 2024</div>'
+    +f('Habitantes',fmt(pob))
+    +f('Declaran algún modo',fmt(modos))
+    +f('Usan la bicicleta',fmt(bici))
+    +f('Participación modal',pct(modos?100*bici/modos:NaN,2))
+    +f('Ciclistas a menos de 300 m de la red',pct(bici?100*bcub/bici:NaN))
+    +f('Kilómetros de red existente',fmt(kme,1)+' km')
+    +f('Siniestros con ciclista (2020-2024)',fmt(sini));
+  h+='<div style="font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;'
+    +'color:var(--ink-lo);margin:14px 0 4px">Encuesta Origen-Destino</div>';
+  if(c){
+    h+=f('Encuesta',c.ciudad+' '+c.anio)
+      +f('Viajes diarios expandidos',fmt(c.viajes))
+      +f('Viajes en bicicleta',fmt(c.bici_viajes))
+      +f('Participación de la bicicleta',pct(c.bici_pct,2))
+      +f('Cifra oficial del informe',c.ok?pct(c.ofi,2):'no utilizable')
+      +(c.censo?f('Censo sobre las mismas comunas',pct(c.censo,2)):'');
+    const cr=crucesDeCiudad(c);
+    const sx=(cr.sexo||[]); const hm=sx.find(x=>x.v==='Hombre'), mj=sx.find(x=>x.v==='Mujer');
+    if(hm&&mj&&mj.p>0)
+      h+='<div class="nota" style="border-left:3px solid var(--or);padding-left:9px;'
+        +'font-size:.78rem;color:var(--mut);margin-top:10px">En esta ciudad los hombres pedalean '
+        +fmt(hm.p/mj.p,1)+' veces más que las mujeres ('+pct(hm.p,2)+' de sus viajes contra '
+        +pct(mj.p,2)+').</div>';
+  } else {
+    h+='<div class="vacio" style="color:var(--mut);font-size:.84rem;line-height:1.5">'
+      +'No hay una Encuesta Origen-Destino asociada a este territorio. Las 15 encuestas '
+      +'reconstruidas cubren conurbaciones específicas; selecciona una de ellas —por ejemplo '
+      +'Talca, Gran Concepción o Gran Santiago— para ver su detalle.</div>';
+  }
+  el.innerHTML=h;
 }
 
 function tabla(id,cols,filas){
@@ -661,48 +888,41 @@ function tablas(){
 }
 
 const IND=[
-  {k:'cob',u:'comuna',t:'Cobertura: población a 300 m de la red',s:'%',inv:false,
-   d:'Porcentaje de habitantes cuya manzana censal está a menos de 300 m de un tramo existente. Es el umbral que usa el índice de ciclo-inclusión de SECTRA.'},
-  {k:'bici_pct',u:'comuna',t:'Uso de la bicicleta (Censo 2024)',s:'%',inv:false,
-   d:'Participación de la bicicleta como modo principal de transporte al trabajo o al estudio, sobre quienes declaran algún modo.'},
-  {k:'kme',u:'comuna',t:'Kilómetros de red existente',s:' km',inv:false,
-   d:'Suma del kilometraje declarado de los tramos en etapa existentes.'},
-  {k:'pmayor',u:'comuna',t:'Integración: % de km en el fragmento mayor',s:'%',inv:false,
-   d:'Qué proporción de los kilómetros de la comuna pertenece al fragmento conectado más grande. Valores bajos indican tramos sueltos que no permiten un viaje continuo.'},
-  {k:'brecha',u:'comuna',t:'Brecha de cobertura por nivel socioeconómico',s:' pts',inv:true,
-   d:'Cobertura del quintil socioeconómico más alto de la comuna menos la del más bajo. Un valor positivo significa que la infraestructura favorece a las manzanas de mayor nivel.'},
-  {k:'sini',u:'comuna',t:'Siniestros con ciclista (2020-2024)',s:'',inv:true,
-   d:'Siniestros de tránsito con participación de bicicleta registrados por CONASET. Es un conteo, no una tasa: las comunas grandes tienen más por población, no necesariamente por mayor riesgo.'},
-  {k:'bp',u:'zona',t:'Uso de la bicicleta por zona censal',s:'%',inv:false,
-   d:'Participación de la bicicleta en la zona censal. Es la unidad más fina que permite ver diferencias dentro de una misma ciudad.'},
-  {k:'cob',u:'zona',t:'Cobertura de la zona a 300 m',s:'%',inv:false,
-   d:'Población de la zona censal que vive a menos de 300 m de la red existente.'},
-  {k:'d',u:'zona',t:'Distancia media a la ciclovía más cercana',s:' m',inv:true,
-   d:'Distancia desde la zona al tramo existente más cercano, ponderada por la población de cada manzana.'},
-  {k:'nse',u:'zona',t:'Nivel socioeconómico de la zona',s:'',inv:false,
+  {k:'bp',t:'Uso de la bicicleta',s:'%',inv:false,
+   d:'Participación de la bicicleta como modo principal al trabajo o al estudio, sobre quienes declaran algún modo (Censo 2024). Verde donde más se pedalea, rojo donde prácticamente nadie lo hace.'},
+  {k:'cob',t:'Cobertura: población a menos de 300 m de la red',s:'%',inv:false,
+   d:'Porcentaje de habitantes de la zona cuya manzana está a menos de 300 m de un tramo existente. Es el umbral que usa el índice de ciclo-inclusión de SECTRA.'},
+  {k:'d',t:'Distancia a la ciclovía más cercana',s:' m',inv:true,
+   d:'Distancia media al tramo existente más cercano, ponderada por la población de cada manzana. Aquí el rojo marca lo lejano, que es lo malo.'},
+  {k:'sini',t:'Siniestros con ciclista (2020-2024)',s:'',inv:true,
+   d:'Siniestros con participación de bicicleta ocurridos dentro de la zona (CONASET). Es un conteo, no una tasa: las zonas más pobladas o más transitadas acumulan más sin que eso signifique mayor riesgo por viaje.'},
+  {k:'nse',t:'Nivel socioeconómico de la zona',s:'',inv:false,
    d:'Índice de 0 a 100 por zona censal. Es un atributo del territorio, no de las personas que viven en él.'},
+  {k:'pob',t:'Población',s:'',inv:false,
+   d:'Habitantes de la zona censal según el Censo 2024. Sirve de contexto para leer los demás indicadores.'},
 ];
-let map,capaCom,capaZona,cortes=[0,0,0,0],indAct=IND[0],unidad='comuna',baseAct,bases;
+const PAL=()=>[cssv('--u1'),cssv('--u2'),cssv('--u3'),cssv('--u4'),cssv('--u5'),cssv('--u6'),cssv('--u7')];
+let map,capaZona,cortes=[],indAct=IND[0],baseAct,bases,coroVisible=true,sel=null;
+let cRed,cPlan,cCont,cSin,cHeat,cEq,cMed,pendienteEncuadre=false;
+
 // El fondo neutro sigue al tema: un lienzo claro bajo la interfaz oscura
-// desentona y ademas hace ilegible la coropleta, que en oscuro usa azules
-// claros. Esri publica las dos variantes del mismo lienzo sin clave.
+// desentona y ademas hace ilegible la coropleta. Esri publica las dos
+// variantes del mismo lienzo sin clave.
 const urlLienzo=()=>'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'
   +(document.documentElement.getAttribute('data-theme')==='dark'?'Dark':'Light')
   +'_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 function sincronizaLienzo(){
   if(!map||!bases) return;
-  const activo=document.querySelector('#mapBase button.on');
+  const a=document.querySelector('#mapBase button.on');
   bases.claro.setUrl(urlLienzo());
-  if(activo&&activo.dataset.b==='claro') bases.claro.redraw();
+  if(a&&a.dataset.b==='claro') bases.claro.redraw();
 }
-let cRed,cPlan,cCont,cSin,cHeat,cEq,pendienteEncuadre=false;
 
 function initMapa(){
   map=L.map('map',{preferCanvas:true}).setView([-35.5,-71.3],5);
   ['pPoli','pRed','pPtos'].forEach((n,i)=>map.createPane(n).style.zIndex=[350,420,470][i]);
   bases={
-    claro:L.tileLayer(urlLienzo(),
-      {attribution:'Esri, HERE, Garmin, &copy; OpenStreetMap',maxZoom:16}),
+    claro:L.tileLayer(urlLienzo(),{attribution:'Esri, HERE, Garmin, &copy; OpenStreetMap',maxZoom:16}),
     calles:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       {attribution:'&copy; OpenStreetMap',maxZoom:19}),
     satelite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -713,132 +933,235 @@ function initMapa(){
     document.querySelectorAll('#mapBase button').forEach(x=>x.classList.toggle('on',x.dataset.b===b));
     map.removeLayer(baseAct); baseAct=bases[b].addTo(map); pintaPoli();
   };
-  cRed=L.layerGroup().addTo(map); cPlan=L.layerGroup();
-  cCont=L.layerGroup(); cSin=L.layerGroup(); cEq=L.layerGroup();
+  document.getElementById('mapCoro').onclick=ev=>{
+    const c=ev.target.dataset.c; if(!c) return;
+    document.querySelectorAll('#mapCoro button').forEach(x=>x.classList.toggle('on',x.dataset.c===c));
+    coroVisible=(c==='on'); pintaPoli();
+  };
+  cRed=L.layerGroup().addTo(map); cPlan=L.layerGroup().addTo(map);
+  cCont=L.layerGroup().addTo(map); cSin=L.layerGroup(); cEq=L.layerGroup(); cMed=L.layerGroup();
   dibujaRed(); dibujaPuntos();
   const bind=(id,capa)=>document.getElementById(id).onchange=ev=>
     ev.target.checked?map.addLayer(capa):map.removeLayer(capa);
-  bind('lRed',cRed); bind('lPlan',cPlan); bind('lCont',cCont);
-  bind('lSin',cSin); bind('lEq',cEq);
+  ['lRed','lPlan','lCont','lMed','lSin','lEq'].forEach((id,i)=>
+    bind(id,[cRed,cPlan,cCont,cMed,cSin,cEq][i]));
   document.getElementById('lHeat').onchange=ev=>{
     if(cHeat){map.removeLayer(cHeat);cHeat=null;}
     if(ev.target.checked){
-      const pts=D.siniestros.filter(s=>enFiltro(s.c)).map(s=>[s.ll[0],s.ll[1],1]);
+      const pts=D.siniestros.filter(x=>enFiltro(x.c)).map(x=>[x.ll[0],x.ll[1],1]);
       cHeat=L.heatLayer(pts,{radius:18,blur:22,maxZoom:14}); map.addLayer(cHeat);
     }};
-  document.getElementById('mapUnit').onclick=ev=>{
-    const u=ev.target.dataset.u; if(!u) return;
-    document.querySelectorAll('#mapUnit button').forEach(x=>x.classList.toggle('on',x.dataset.u===u));
-    unidad=u; llenaInd(); pintaPoli();
-  };
-  document.getElementById('mapInd').onchange=ev=>{indAct=IND[Number(ev.target.value)];pintaPoli();};
-  llenaInd();
+  const si=document.getElementById('mapInd');
+  IND.forEach((x,i)=>{const o=document.createElement('option');o.value=i;o.textContent=x.t;si.appendChild(o);});
+  si.onchange=()=>{indAct=IND[Number(si.value)];pintaPoli();};
+  map.on('click',()=>{sel=null;panelDetalle();});
 }
-function llenaInd(){
-  const sel=document.getElementById('mapInd'); sel.innerHTML='';
-  IND.forEach((x,i)=>{ if(x.u!==unidad) return;
-    const o=document.createElement('option'); o.value=i; o.textContent=x.t; sel.appendChild(o);});
-  indAct=IND[Number(sel.value)];
-}
-function quintiles(v){
+
+function quintiles(v,n){
   v=v.slice().sort((a,b)=>a-b);
-  return [.2,.4,.6,.8].map(p=>v[Math.max(0,Math.floor(p*(v.length-1)))]);
+  return Array.from({length:n-1},(_,i)=>v[Math.max(0,Math.floor((i+1)/n*(v.length-1)))]);
 }
 function colorDe(v){
-  const P=[cssv('--seq-1'),cssv('--seq-2'),cssv('--seq-3'),cssv('--seq-4'),cssv('--seq-5')];
+  const P=PAL();
   if(v===null||v===undefined||!isFinite(v)) return cssv('--surface-alt');
   let i=0; while(i<cortes.length&&v>cortes[i])i++;
-  return indAct.inv?P[4-i]:P[i];
+  return indAct.inv?P[P.length-1-i]:P[i];
 }
 function pintaPoli(){
-  if(capaCom){map.removeLayer(capaCom);capaCom=null;}
   if(capaZona){map.removeLayer(capaZona);capaZona=null;}
-  const satel=document.querySelector('#mapBase button.on').dataset.b==='satelite';
-  const op=satel?0.58:0.78;
   document.getElementById('mapDesc').textContent=indAct.d;
-
-  if(unidad==='comuna'){
-    const vals=Object.entries(D.comunas).filter(([c])=>enFiltro(c))
-      .map(([,d])=>d[indAct.k]).filter(v=>v!==null&&v!==undefined&&isFinite(v));
-    cortes=quintiles(vals.length?vals:[0]);
-    capaCom=L.geoJSON(D.comunasGeo,{pane:'pPoli',
-      filter:f=>enFiltro(f.properties.cut),
-      style:f=>{const d=D.comunas[f.properties.cut]||{};
-        return{fillColor:colorDe(d[indAct.k]),fillOpacity:op,color:'#fff',weight:.6};},
-      onEachFeature:(f,l)=>{const c=f.properties.cut,d=D.comunas[c]||{};
-        l.bindTooltip(`<b>${f.properties.nom}</b><br>${indAct.t}: ${fmt(d[indAct.k],1)}${indAct.s}`
-          +`<br>${fmt(d.pob)} hab · ${fmt(d.kme,1)} km existentes`,{sticky:true});
-        l.on('click',()=>{F.cut=c;F.metro=null;F.metroNom='';sincroniza();});
-        l.on('mouseover',()=>l.setStyle({weight:2,color:cssv('--accent')}));
-        l.on('mouseout',()=>l.setStyle({weight:.6,color:'#fff'}));
-      }}).addTo(map);
-    document.getElementById('mapHint').textContent=`· ${Object.keys(comunasFiltradas()).length} comunas`;
-  } else {
-    const zs=D.zonas.filter(z=>enFiltro(z.c));
-    const vals=zs.map(z=>z[indAct.k]).filter(v=>v!==null&&v!==undefined&&isFinite(v));
-    cortes=quintiles(vals.length?vals:[0]);
-    capaZona=L.layerGroup();
-    zs.forEach(z=>z.g.forEach(anillo=>{
-      const p=L.polygon(anillo,{pane:'pPoli',fillColor:colorDe(z[indAct.k]),fillOpacity:op,
-        color:'#fff',weight:.4});
-      p.bindTooltip(`<b>${z.nom}</b> · zona ${z.z}<br>${indAct.t}: ${fmt(z[indAct.k],1)}${indAct.s}`
-        +`<br>${fmt(z.pob)} hab · ${fmt(z.bici)} en bicicleta<br>a ${fmt(z.d)} m de la red`,{sticky:true});
-      capaZona.addLayer(p);}));
-    capaZona.addTo(map);
-    document.getElementById('mapHint').textContent=`· ${zs.length} zonas censales`;
-  }
+  const zs=D.zonas.filter(z=>enFiltro(z.c));
+  document.getElementById('mapHint').textContent='\u00b7 '+fmt(zs.length)+' zonas censales';
+  if(!coroVisible){ leyenda(); return; }
+  const satel=document.querySelector('#mapBase button.on').dataset.b==='satelite';
+  const op=satel?0.55:0.72;
+  const vals=zs.map(z=>z[indAct.k]).filter(v=>v!==null&&v!==undefined&&isFinite(v));
+  cortes=quintiles(vals.length?vals:[0],7);
+  capaZona=L.layerGroup();
+  zs.forEach(z=>z.g.forEach(anillo=>{
+    const p=L.polygon(anillo,{pane:'pPoli',fillColor:colorDe(z[indAct.k]),fillOpacity:op,
+      color:'#fff',weight:.35});
+    p.bindTooltip('<b>'+z.nom+'</b> \u00b7 zona '+z.z+'<br>'+indAct.t+': '+fmt(z[indAct.k],1)+indAct.s,{sticky:true});
+    p.on('click',ev=>{L.DomEvent.stop(ev);sel={tipo:'zona',d:z};panelDetalle();});
+    capaZona.addLayer(p);}));
+  capaZona.addTo(map);
   leyenda();
 }
 function leyenda(){
-  const P=[cssv('--seq-1'),cssv('--seq-2'),cssv('--seq-3'),cssv('--seq-4'),cssv('--seq-5')];
-  const et=[`≤ ${fmt(cortes[0],1)}`,`≤ ${fmt(cortes[1],1)}`,`≤ ${fmt(cortes[2],1)}`,
-            `≤ ${fmt(cortes[3],1)}`,`> ${fmt(cortes[3],1)}`];
-  let h=`<div class="grp"><span class="ttl">${indAct.t}${indAct.s.trim()?' ('+indAct.s.trim()+')':''}</span>`;
-  et.forEach((e,i)=>h+=`<span class="sw" style="background:${indAct.inv?P[4-i]:P[i]}"></span>${e}`);
-  h+=`<span class="sw" style="background:${cssv('--surface-alt')}"></span>sin dato</div>`;
-  h+=`<div class="grp"><span class="ttl">Red</span>`;
-  ETAPAS.forEach((e,i)=>h+=`<span class="swl" style="background:${cssv('--e'+i)}"></span>${e}`);
-  h+=`</div><div class="grp"><span class="ttl">Puntos</span>`
-   +`<span class="swd" style="background:${cssv('--c-cont')}"></span>contador (tamaño = media diaria)`
-   +`<span class="swd" style="background:${cssv('--c-sin')}"></span>siniestro con ciclista`
-   +`<span class="swd" style="background:${cssv('--c-ok')}"></span>colegio o sede a menos de 300 m`
-   +`<span class="swd" style="background:${cssv('--c-sin')};opacity:.5"></span>a más de 300 m</div>`;
+  const P=PAL(), n=P.length;
+  let h='';
+  if(coroVisible&&cortes.length){
+    const et=cortes.map(c=>'\u2264 '+fmt(c,1)).concat(['> '+fmt(cortes[cortes.length-1],1)]);
+    h+='<div class="grp"><span class="ttl">'+indAct.t+(indAct.s.trim()?' ('+indAct.s.trim()+')':'')+'</span>';
+    et.forEach((e,i)=>h+='<span class="sw" style="background:'+(indAct.inv?P[n-1-i]:P[i])+'"></span>'+e);
+    h+='<span class="sw" style="background:'+cssv('--surface-alt')+'"></span>sin dato</div>';
+  } else {
+    h+='<div class="grp"><span class="ttl">Coropleta oculta</span>para leer la red sin relleno de fondo</div>';
+  }
+  h+='<div class="grp"><span class="ttl">Red</span>';
+  ETAPAS.forEach((e,i)=>h+='<span class="swl" style="background:'+cssv('--e'+i)+'"></span>'+e);
+  h+='</div><div class="grp"><span class="ttl">Puntos</span>'
+   +'<span class="swd" style="background:'+cssv('--c-cont')+'"></span>contador (tama\u00f1o = media diaria)'
+   +'<span class="swd" style="background:'+cssv('--div-pos')+'"></span>medici\u00f3n SECTRA'
+   +'<span class="swd" style="background:'+cssv('--c-sin')+'"></span>siniestro con ciclista'
+   +'<span class="swd" style="background:'+cssv('--c-ok')+'"></span>colegio o sede a menos de 300 m</div>';
   document.getElementById('legend').innerHTML=h;
 }
 function dibujaRed(){
   cRed.clearLayers(); cPlan.clearLayers();
   D.red.forEach(t=>{ if(!enFiltro(t.c)) return;
     const dst=t.e===0?cRed:cPlan;
-    const st={pane:'pRed',color:cssv('--e'+t.e),weight:t.e===0?2.6:1.7,
-      opacity:t.e===0?.95:.7,dashArray:t.e>=2?'4,4':null};
-    t.g.forEach(p=>{const ln=L.polyline(p,st);
-      ln.bindTooltip(`<b>${t.n||'(sin nombre de eje)'}</b><br>${ETAPAS[t.e]} · ${t.t}`
-        +`<br>${fmt(t.k,2)} km${t.a?' · '+t.a:''}`,{sticky:true});
+    const st={pane:'pRed',color:cssv('--e'+t.e),weight:t.e===0?3:1.9,
+      opacity:t.e===0?1:.8,dashArray:t.e>=2?'4,4':null};
+    t.g.forEach(pp=>{const ln=L.polyline(pp,st);
+      ln.bindTooltip('<b>'+(t.n||'(sin nombre de eje)')+'</b><br>'+ETAPAS[t.e]+' \u00b7 '+t.t
+        +'<br>'+fmt(t.k,2)+' km'+(t.a?' \u00b7 '+t.a:''),{sticky:true});
       dst.addLayer(ln);});});
 }
 function dibujaPuntos(){
-  cCont.clearLayers(); cSin.clearLayers(); cEq.clearLayers();
+  cCont.clearLayers(); cSin.clearLayers(); cEq.clearLayers(); cMed.clearLayers();
   D.contadores.forEach(c=>{ if(!enFiltro(c.c))return;
-    const r=c.m?Math.max(4,Math.min(15,Math.sqrt(c.m)*.62)):4;
-    L.circleMarker(c.ll,{pane:'pPtos',radius:r,color:'#0f766e',weight:1.3,
-      fillColor:cssv('--c-cont'),fillOpacity:.8})
-      .bindTooltip(`<b>${c.n}</b><br>Media diaria ${fmt(c.m,1)} pasadas`
-        +`<br>Hábil ${fmt(c.hab,0)} · fin de semana ${fmt(c.fds,0)}`
-        +`<br>Máximo ${fmt(c.x,0)}${c.d0?'<br>Mide desde '+c.d0+' hasta '+c.d1:''}`,{sticky:true})
+    const r=c.m?Math.max(5,Math.min(17,Math.sqrt(c.m)*.68)):5;
+    L.circleMarker(c.ll,{pane:'pPtos',radius:r,color:'#0f766e',weight:1.4,
+      fillColor:cssv('--c-cont'),fillOpacity:.85})
+      .bindTooltip('<b>'+c.n+'</b><br>'+fmt(c.m,1)+' pasadas/d\u00eda \u00b7 clic para el detalle',{sticky:true})
+      .on('click',ev=>{L.DomEvent.stop(ev);sel={tipo:'contador',d:c};panelDetalle();})
       .addTo(cCont);});
-  D.siniestros.forEach(s=>{ if(!enFiltro(s.c))return;
-    L.circleMarker(s.ll,{pane:'pPtos',radius:s.f>0?5:3,color:cssv('--c-sin'),weight:1,
-      fillColor:cssv('--c-sin'),fillOpacity:s.f>0?.95:.5})
-      .bindTooltip(`Siniestro con ciclista${s.a?' · '+s.a:''}${s.h!==null&&s.h!==undefined?' · '+s.h+'h':''}`
-        +`<br>${s.t||''}${s.f?'<br><b>'+s.f+' fallecido(s)</b>':''}${s.gr?'<br>'+s.gr+' grave(s)':''}`,{sticky:true})
+  (D.mediciones||[]).forEach(m=>{
+    const r=m.tot?Math.max(4,Math.min(14,Math.sqrt(m.tot)*1.1)):4;
+    L.circleMarker(m.ll,{pane:'pPtos',radius:r,color:'#14406b',weight:1.2,
+      fillColor:cssv('--div-pos'),fillOpacity:.85})
+      .bindTooltip('<b>Punto de control '+m.pc+'</b> \u00b7 '+m.com+'<br>'+fmt(m.tot)+' ciclistas medidos \u00b7 clic para el detalle',{sticky:true})
+      .on('click',ev=>{L.DomEvent.stop(ev);sel={tipo:'medicion',d:m};panelDetalle();})
+      .addTo(cMed);});
+  D.siniestros.forEach(x=>{ if(!enFiltro(x.c))return;
+    L.circleMarker(x.ll,{pane:'pPtos',radius:x.f>0?5:3,color:cssv('--c-sin'),weight:1,
+      fillColor:cssv('--c-sin'),fillOpacity:x.f>0?.95:.5})
+      .bindTooltip('Siniestro con ciclista'+(x.a?' \u00b7 '+x.a:'')+((x.h!==null&&x.h!==undefined)?' \u00b7 '+x.h+'h':'')
+        +'<br>'+(x.t||'')+(x.f?'<br><b>'+x.f+' fallecido(s)</b>':''),{sticky:true})
       .addTo(cSin);});
   D.equip.forEach(e=>{ if(!enFiltro(e.c))return;
     const ok=e.d<=300;
     L.circleMarker(e.ll,{pane:'pPtos',radius:e.k?5:3,color:ok?'#166534':'#7f1d1d',weight:1,
       fillColor:ok?cssv('--c-ok'):cssv('--c-sin'),fillOpacity:ok?.85:.5})
-      .bindTooltip(`<b>${e.n}</b><br>${e.k?'Educación superior':'Establecimiento escolar'}`
-        +`<br>A ${fmt(e.d)} m de la red${e.m?'<br>Matrícula '+fmt(e.m):''}`,{sticky:true})
+      .bindTooltip('<b>'+e.n+'</b><br>'+(e.k?'Educaci\u00f3n superior':'Establecimiento escolar')
+        +'<br>A '+fmt(e.d)+' m de la red'+(e.m?'<br>Matr\u00edcula '+fmt(e.m):''),{sticky:true})
       .addTo(cEq);});
+}
+
+/* ------------- panel de detalle: el tercio derecho del mapa ------------- */
+let chDet=null, chDet2=null;
+function fila(k,v){return '<div class="fila"><span>'+k+'</span><span>'+v+'</span></div>';}
+function ciudadDe(cut){
+  // El contador no publica su curva horaria; en su ficha se muestra la de la
+  // EOD de su ciudad, declarada como fuente distinta y patron urbano, no como
+  // medicion de ese punto. La ciudad se resuelve por la LISTA DE COMUNAS de
+  // cada EOD y no por el nombre de la comuna: un contador de Chiguayante
+  // pertenece a la EOD del Gran Concepcion, y comparar nombres lo dejaba sin
+  // curva.
+  if(!cut) return null;
+  for(const [ciu,cs] of Object.entries(D.eod_comunas||{})){
+    if(!cs.includes(cut)) continue;
+    const k=Object.keys(D.eod_hora_ciudad||{}).find(c=>sinAc(c)===sinAc(ciu)
+      ||sinAc(c).includes(sinAc(ciu))||sinAc(ciu).includes(sinAc(c)));
+    if(k) return k;
+  }
+  return null;
+}
+function panelDetalle(){
+  const el=document.getElementById('detalle');
+  if(chDet){chDet.destroy();chDet=null;}
+  if(chDet2){chDet2.destroy();chDet2=null;}
+  const {mut,line}=ctx();
+  const ejes=(t)=>({responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},title:{display:true,text:t,color:mut,font:{size:11}}},
+    scales:{x:{grid:{display:false},ticks:{color:mut,font:{size:9}}},
+            y:{grid:{color:line},ticks:{color:mut,font:{size:9}},beginAtZero:true}}});
+
+  if(!sel){
+    const zs=D.zonas.filter(z=>enFiltro(z.c));
+    const pob=zs.reduce((a,z)=>a+(z.pob||0),0);
+    const bici=zs.reduce((a,z)=>a+(z.bici||0),0);
+    const sin=zs.reduce((a,z)=>a+(z.sini||0),0);
+    const cont=D.contadores.filter(c=>enFiltro(c.c));
+    const o=comunasFiltradas();
+    const modos=Object.values(o).reduce((a,d)=>a+(d.viajes_modo||0),0);
+    el.innerHTML='<h3>'+(F.cut?((D.comunas[F.cut]||{}).nom||''):(F.metroNom||F.region||'Chile'))+'</h3>'
+      +'<div class="sub">'+fmt(zs.length)+' zonas censales en el territorio seleccionado</div>'
+      +fila('Habitantes',fmt(pob))
+      +fila('Usan la bicicleta',fmt(bici))
+      +fila('Participaci\u00f3n modal',pct(modos?100*bici/modos:NaN,2))
+      +fila('Siniestros con ciclista',fmt(sin))
+      +fila('Contadores de flujo',fmt(cont.length))
+      +'<div class="vacio" style="margin-top:14px">Haz clic en una <b>zona censal</b>, en un <b>contador de flujo</b> o en un <b>punto de medici\u00f3n</b> para ver su ficha ac\u00e1.</div>';
+    return;
+  }
+
+  if(sel.tipo==='zona'){
+    const z=sel.d;
+    el.innerHTML='<h3>'+z.nom+'</h3><div class="sub">Zona censal '+z.z+'</div>'
+      +fila('Habitantes',fmt(z.pob))
+      +fila('Usan la bicicleta',fmt(z.bici))
+      +fila('Participaci\u00f3n modal',pct(z.bp))
+      +fila('Poblaci\u00f3n a menos de 300 m',pct(z.cob))
+      +fila('Distancia a la red',fmt(z.d)+' m')
+      +fila('Nivel socioecon\u00f3mico',fmt(z.nse,1))
+      +fila('Escolares residentes',fmt(z.esc))
+      +fila('Siniestros con ciclista',fmt(z.sini))
+      +(z.sinf?fila('Con resultado de muerte',fmt(z.sinf)):'')
+      +((z.bp>3.8&&z.d>600)?'<div class="nota">Zona con uso de bicicleta sobre el promedio nacional y sin red cerca: demanda que ya existe sin infraestructura que la acompa\u00f1e.</div>':'');
+    return;
+  }
+
+  if(sel.tipo==='contador'){
+    const c=sel.d, ciu=ciudadDe(c.c);
+    el.innerHTML='<h3>'+c.n+'</h3>'
+      +'<div class="sub">Contador '+c.prov+' \u00b7 '+((D.comunas[c.c]||{}).nom||'')+'</div>'
+      +fila('Media diaria',fmt(c.m,1)+' pasadas')
+      +fila('Promedio d\u00eda h\u00e1bil',fmt(c.hab,1))
+      +fila('Promedio fin de semana',fmt(c.fds,1))
+      +fila('Media semanal',fmt(c.sem))
+      +fila('M\u00e1ximo diario',fmt(c.x))
+      +fila('Mide desde',c.d0||'s/d')
+      +fila('Hasta',c.d1||'s/d')
+      +'<div class="mini"><canvas id="miniCanvas"></canvas></div>'
+      +(ciu?'<div class="mini"><canvas id="miniCanvas2"></canvas></div>':'')
+      +'<div class="nota">El contador publica <b>solo agregados</b>: la fuente no entrega serie diaria ni curva horaria de este punto.'
+      +(ciu?' La curva de arriba es el patr\u00f3n horario de la EOD de '+ciu+', fuente distinta y de ciudad, no medici\u00f3n de este contador.':'')
+      +'</div>';
+    const b=[['D\u00eda h\u00e1bil',c.hab],['Fin de semana',c.fds],['Media',c.m],['M\u00e1ximo',c.x]];
+    chDet=new Chart(document.getElementById('miniCanvas'),{type:'bar',
+      data:{labels:b.map(x=>x[0]),datasets:[{data:b.map(x=>x[1]),
+        backgroundColor:[cssv('--c-cont'),cssv('--u3'),cssv('--u6'),cssv('--u1')],borderRadius:3}]},
+      options:ejes('Pasadas por d\u00eda')});
+    if(ciu){
+      chDet2=new Chart(document.getElementById('miniCanvas2'),{type:'line',
+        data:{labels:Array.from({length:24},(_,i)=>i),datasets:[{data:D.eod_hora_ciudad[ciu],
+          borderColor:cssv('--u7'),backgroundColor:cssv('--u5')+'66',fill:true,tension:.35,pointRadius:0}]},
+        options:ejes('Patr\u00f3n horario EOD \u00b7 '+ciu)});
+    }
+    return;
+  }
+
+  if(sel.tipo==='medicion'){
+    const m=sel.d;
+    el.innerHTML='<h3>Punto de control '+m.pc+'</h3>'
+      +'<div class="sub">Medici\u00f3n SECTRA \u00b7 '+m.com+'</div>'
+      +fila('Ciclistas medidos',fmt(m.tot))
+      +fila('Fuera de punta',fmt(m.fp))
+      +fila('Punta ma\u00f1ana',fmt(m.pm))
+      +fila('Punta tarde',fmt(m.pt))
+      +fila('Ciclistas expandidos',fmt(m.exp))
+      +fila('Veh\u00edculos expandidos',fmt(m.expv))
+      +fila('Bicicletas por veh\u00edculo',fmt(m.prop*100,2)+' %')
+      +'<div class="mini"><canvas id="miniCanvas"></canvas></div>'
+      +'<div class="nota">Es la \u00fanica fuente con reparto <b>dentro del d\u00eda</b> asociado a un punto concreto: fuera de punta, punta ma\u00f1ana y punta tarde.</div>';
+    chDet=new Chart(document.getElementById('miniCanvas'),{type:'bar',
+      data:{labels:['Fuera de punta','Punta ma\u00f1ana','Punta tarde'],
+        datasets:[{data:[m.fp,m.pm,m.pt],
+          backgroundColor:[cssv('--u4'),cssv('--u6'),cssv('--u2')],borderRadius:3}]},
+      options:ejes('Ciclistas por per\u00edodo')});
+  }
 }
 
 const REG=[...new Set(Object.values(D.comunas).map(d=>d.reg).filter(Boolean))].sort();
@@ -969,6 +1292,12 @@ document.getElementById('cbBtn').onclick=ev=>{
   else document.documentElement.setAttribute('data-cb','1');
   ev.currentTarget.setAttribute('aria-pressed',String(!on));
   rerender();
+};
+
+document.getElementById('selCruce').onclick=ev=>{
+  const x=ev.target.dataset.x; if(!x) return;
+  document.querySelectorAll('#selCruce button').forEach(b=>b.classList.toggle('on',b.dataset.x===x));
+  cruceAct=x; dibujaCruce();
 };
 
 initFiltros(); migas(); kpis(); graficos(); tablas();

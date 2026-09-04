@@ -104,6 +104,31 @@ CIUDAD_COMUNAS = {
 TOL_CONSISTENCIA = 2.0     # puntos porcentuales
 
 
+def hora_del_viaje(serie):
+    """Hora de inicio 0-23 a partir de `hora_inicio`, que llega en TRES formatos
+    distintos segun la ciudad y ninguno esta declarado:
+
+      1. fecha centinela de Access/Excel — "1899-12-30 13:20:00": solo la parte
+         horaria significa algo, la fecha es relleno;
+      2. fraccion de dia de Excel — "0.54166666667" es 13:00;
+      3. la hora pelada — "17" o "7.0".
+
+    Leerla como numero sin distinguir formatos devuelve nanosegundos para el
+    primer caso y cero para el segundo, y la curva horaria sale vacia sin que
+    nada falle: asi estuvo el grafico de la seccion Demanda hasta detectarlo.
+    """
+    if pd.api.types.is_datetime64_any_dtype(serie):
+        return serie.dt.hour.astype("Float64")
+    dt = pd.to_datetime(serie, errors="coerce", format="mixed")
+    h = dt.dt.hour.astype("Float64")
+    num = pd.to_numeric(serie, errors="coerce")
+    frac = num.where((num >= 0) & (num < 1))
+    h = h.fillna((frac * 24).round().astype("Float64"))
+    entera = num.where((num >= 0) & (num <= 23))
+    h = h.fillna(entera.round().astype("Float64"))
+    return h.where((h >= 0) & (h <= 23))
+
+
 def norm(s):
     s = unicodedata.normalize("NFD", str(s)).encode("ascii", "ignore").decode()
     return " ".join(s.upper().split())
@@ -133,8 +158,11 @@ def reconstruye_eod():
         names = pf.schema_arrow.names
         if "modo_agregado_desc" not in names:
             continue
+        # La hora viene en `hora_inicio` (float 0-23) en todas las ciudades; no
+        # existe una columna `hora` en los archivos por ciudad, y pedirla dejaba
+        # la dimension horaria vacia sin que nada fallara.
         quiero = ["modo_agregado", "modo_agregado_desc", "factor", "proposito_agregado_h",
-                  "periodo", "hora", "zona_origen", "zona_destino"]
+                  "periodo", "hora_inicio", "zona_origen", "zona_destino"]
         cols = [c for c in quiero if c in names]
         d = pq.read_table(dd, columns=cols).to_pandas()
         d["f"] = pd.to_numeric(d.get("factor"), errors="coerce").fillna(0)
@@ -173,12 +201,18 @@ def reconstruye_eod():
 
         b = d[es_bici]
         for dim, col in [("proposito", "proposito_agregado_h"),
-                         ("periodo", "periodo"), ("hora", "hora")]:
+                         ("periodo", "periodo")]:
             if col in b.columns:
                 s = b.groupby(b[col].astype(str)).f.sum()
                 for k, v in s.items():
                     perfil.append(dict(ciudad=ciudad, anio=anio, dim=dim,
                                        valor=k, viajes=v))
+        if "hora_inicio" in b.columns:
+            hh = hora_del_viaje(b["hora_inicio"])
+            s = b.assign(_h=hh).dropna(subset=["_h"]).groupby("_h").f.sum()
+            for k, v in s.items():
+                perfil.append(dict(ciudad=ciudad, anio=anio, dim="hora",
+                                   valor=str(int(k)), viajes=v))
         for lado, col in [("origen", "zona_origen"), ("destino", "zona_destino")]:
             if col in b.columns:
                 s = b.groupby(b[col].astype(str)).f.sum()

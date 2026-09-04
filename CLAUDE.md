@@ -191,4 +191,37 @@ Todos de la misma familia: **fallas que no lanzan error**.
   con alfa > 0 en el canvas, sirviendo por HTTP. Contar nodos del DOM no distingue
   un mapa correcto de uno vacío.
 
-<!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=c9b5ff9 -->
+- `[banco]` 2026-09-04 — **`hora_inicio` de la EOD llega en tres formatos y
+  ninguno esta declarado**: fecha centinela de Access (`1899-12-30 13:20:00`,
+  donde solo importa la hora), fraccion de dia de Excel (`0,5416` = 13:00) y la
+  hora pelada (`17`). Leerla como numero devuelve nanosegundos en el primer caso
+  y cero en el segundo, y la curva horaria sale vacia sin que nada falle: asi
+  estuvo el grafico de Demanda hasta detectarlo. Normalizar con
+  `hora_del_viaje()` en `analisis_demanda.py`.
+- `[banco]` 2026-09-04 — **`smp` es «senda multiproposito»**, la infraestructura
+  del MOP en la berma de una ruta rural. El servicio no lo declara: se dedujo
+  del propio catastro, donde los nombres de proyecto de esos tramos dicen
+  «construccion de sendas multiproposito en red vial», 372 de 421 son cartera
+  MOP, 343 son rurales y 324 van por berma. Antes estaba glosado a ojo como
+  «servicio de movilidad particular», que era invencion.
+- `[banco]` 2026-09-04 — `viajes_analiticos.parquet` reproduce **exactamente** la
+  reconstruccion de bicicleta hecha sobre los archivos por ciudad (r = 1,00000,
+  diferencia media 0,0000 pp en 15 ciudades). Por eso los cruces por edad, sexo
+  y quintil se calculan ahi, que es el unico archivo con los atributos de la
+  persona pegados al viaje. Si esa igualdad se rompe, el dataset analitico
+  cambio de criterio y hay que revisarlo antes de seguir publicando los cruces.
+- `[visor]` 2026-09-04 — **El mismo nombre de ciudad llega con y sin tilde segun
+  la fuente** —«Gran Concepcion» desde el nombre de carpeta, «Gran Concepción»
+  desde el dataset analitico— y compararlos literal hacia caer siempre al
+  agregado nacional sin error visible. Todo emparejamiento de ciudad va por
+  clave sin acentos. Lo mismo con la comuna de un contador: se resuelve por la
+  lista de comunas de cada EOD, no por nombre, porque un contador de Chiguayante
+  pertenece a la EOD del Gran Concepcion.
+- `[visor]` 2026-09-04 — La coropleta usa **rojo-amarillo-verde de siete clases**
+  (rojo = casi nada, verde = mucho), por pedido explicito: la rampa azul
+  secuencial no dejaba ver de un vistazo donde se usa mas y donde menos. Como
+  esa combinacion es la peor para la deuteranopia, el boton de daltonismo
+  cambia a viridis, que ordena por luminosidad. Los graficos no espaciales
+  conservan la rampa azul neutra.
+
+<!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=pendiente -->
