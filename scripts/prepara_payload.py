@@ -264,14 +264,34 @@ def main():
 
 
     # KPI de la EOD por ciudad. Vienen del indice del tablero de movilidad del
-    # repositorio, mas los que ese indice no resuelve: el tiempo mediano —que
-    # ahi solo esta en 8 de 18 ciudades— y su version por modo, que es la que
-    # permite decir si la bicicleta compite o solo cubre lo que nadie cubre.
+    # repositorio, mas los que ese indice no resuelve: el tiempo mediano y su
+    # version por modo, que es la que permite decir si la bicicleta compite o
+    # solo cubre lo que nadie cubre.
+    #
+    # Desde el 2026-09-06 el indice trae `tiempo_medio_min` en las 18 ciudades
+    # —antes en 8—, pero se sigue calculando aca, y por la otra razon: el campo
+    # `tiempo_viaje` del microdato llega con registros de hasta 1.435 minutos y
+    # el indice publica un PROMEDIO, que esos casos arrastran. Aca se usa la
+    # mediana ponderada por el factor y con tope de 300 minutos.
     fk = AN / "eod_kpi.parquet"
     if fk.exists():
         kp = pd.read_parquet(fk)
+        # La caminata se toma de la reconstruccion propia y solo se cae al
+        # campo del indice donde no hay reconstruccion (Gran Valparaiso,
+        # Linares y San Antonio, sin microdato separable). El campo del indice
+        # arrastra la bicicleta adentro donde la homologacion todavia no esta
+        # corregida: Curico declara 30,5 % de caminata contra 21,8 % real.
+        # Y donde el indice declara 0,0 % de no motorizado —Gran Valparaiso y
+        # San Antonio— no hay medicion sino ausencia codificada como cero:
+        # ninguna ciudad tiene cero viajes a pie. Se publica como sin dato, que
+        # el visor muestra "s/d", en vez de un cero que se lee como medido.
+        ind_cam = kp["pct_caminata"].where(
+            kp.get("pct_no_motorizado", kp["pct_caminata"]).fillna(0) > 0)
+        kp["pct_caminata"] = (kp["cam_pct_propio"].combine_first(ind_cam)
+                              if "cam_pct_propio" in kp.columns else ind_cam)
         campos = ["n_zonas", "viajes", "viajes_persona", "pct_trabajo",
                   "pct_estudio", "pct_publico", "pct_privado", "pct_caminata",
+                  "bici_pct_propio",
                   "tiempo_med_min", "tiempo_med_bici_min",
                   "dist_media_todos_km", "dist_media_bici_km"]
         D["eod_kpi"] = {}

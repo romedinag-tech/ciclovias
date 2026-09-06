@@ -119,7 +119,37 @@ def main():
         for c in ["dist_media_bici_km", "dist_med_bici_km", "dist_media_todos_km"]:
             calc[c] = np.nan
 
+    # Caminata y bicicleta reconstruidas aca, no copiadas del indice. El indice
+    # arrastra un defecto de homologacion —la categoria «No Caminata» del
+    # catalogo atipico de Gran Concepcion y Curico se clasificaba como caminata,
+    # sumandole los viajes en bicicleta—. En el Gran Concepcion quedo corregido
+    # el 2026-09-06, pero Curico sigue declarando 30,5 % de caminata y 0,0 % de
+    # bicicleta cuando el microdato dice 21,8 % y 8,7 %. Se publica la
+    # reconstruccion propia, que reproduce el indice corregido en las 14
+    # ciudades donde ese indice ya es consistente.
+    fc = AN / "demanda_eod_ciudad.parquet"
+    if fc.exists():
+        dc = pd.read_parquet(fc)
+        dc = dc[dc.separable == True].copy()          # noqa: E712
+        dc["k"] = dc.ciudad.map(clave)
+        dc["cam_pct_propio"] = 100 * dc.caminata_exp / dc.viajes_exp
+        dc = dc.rename(columns={"bici_pct": "bici_pct_propio"})
+        calc = calc.merge(dc[["k", "cam_pct_propio", "bici_pct_propio"]],
+                          on="k", how="left")
+    else:
+        calc["cam_pct_propio"] = np.nan
+        calc["bici_pct_propio"] = np.nan
+
     t = idx.merge(calc.drop(columns=["ciudad", "anio"]), on="k", how="outer")
+    if "pct_caminata" in t.columns:
+        d = (t.cam_pct_propio - t.pct_caminata).abs()
+        disc = t[d > 0.5]
+        if len(disc):
+            print("\nciudades donde el indice y la reconstruccion propia "
+                  "discrepan en caminata (se publica la propia):")
+            for r in disc.itertuples():
+                print(f"  {str(r.ciudad)[:26]:26} indice {r.pct_caminata:5.1f} % "
+                      f"contra {r.cam_pct_propio:5.1f} % propio")
     t.to_parquet(AN / "eod_kpi.parquet", index=False)
 
     print(f"-> eod_kpi.parquet | {len(t)} ciudades")

@@ -284,14 +284,20 @@ Todos de la misma familia: **fallas que no lanzan error**.
   abre antes de que el layout asiente. Se comprueba el ancho antes de exportar.
 
 - `[banco]` 2026-09-04 — **El `pct_bicicleta` del indice del tablero de
-  movilidad no es utilizable en todas las ciudades**: marca 0,00 % en Gran
+  movilidad no es utilizable en todas las ciudades**: marcaba 0,00 % en Gran
   Concepcion y Curico, que segun la reconstruccion validada tienen 1,91 % y
-  8,74 %. En la ficha se publica la reconstruccion propia y no ese campo. En
-  cambio la particion modal y el proposito de ese mismo indice si sirven y se
-  usan tal cual.
-- `[banco]` 2026-09-04 — **El tiempo de viaje se calcula aca, no se copia.** El
-  indice trae `tiempo_medio_min` solo en 8 de 18 ciudades, mientras que el campo
-  `tiempo_viaje` del microdato esta completo al 99,9 % en las dieciocho. Se usa
+  8,74 %. Se publica la reconstruccion propia y no ese campo.
+  **Actualizado el 2026-09-06:** `EODs` corrigio el orden de comprobacion en
+  `codigos_canonicos.py` —`'no caminata'` se evalua antes que `'caminata'`, que
+  la contiene como subcadena— y el Gran Concepcion quedo en 1,9 %. **Curico
+  sigue sin corregir**: declara 30,5 % de caminata y 0,0 % de bicicleta cuando
+  el microdato dice 21,8 % y 8,7 %. Por eso ahora tampoco se copia el
+  `pct_caminata` del indice: se reconstruye aca, con `cam_pct_propio` en
+  `eod_kpi`, que reproduce al indice en las 14 ciudades donde ya es consistente.
+- `[banco]` 2026-09-04 — **El tiempo de viaje se calcula aca, no se copia.**
+  Traia dos razones y hoy queda una: el indice publicaba `tiempo_medio_min`
+  solo en 8 de 18 ciudades y desde el 2026-09-06 lo trae en las 18, pero
+  publica un PROMEDIO. Se usa
   la MEDIANA ponderada por el factor y con tope de 300 minutos, porque el campo
   llega con registros de hasta 1.435 minutos que arrastran cualquier promedio.
   Resultado util: el viaje en bicicleta dura sistematicamente menos que el
@@ -339,6 +345,23 @@ Todos de la misma familia: **fallas que no lanzan error**.
   mediana, con lo que una zona equilibrada aparece pintada como si tuviera
   saldo. Los cortes van simétricos en torno a cero, escalados por el percentil
   90 del valor absoluto para que unas pocas zonas extremas no aplasten el resto.
+- `[banco]` 2026-09-06 — **El disparador que se deja escrito es el que
+  paga.** `EODs` corrigio la homologacion de modos del Gran Concepcion y la
+  unica forma de saber si eso invalidaba lo publicado aca era la igualdad que
+  se habia dejado anotada: la reconstruccion propia contra `viajes_analiticos`.
+  Dio r = 1,00000 y diferencia cero en las 15 ciudades, de modo que ningun
+  calculo propio se movio —`eod_cruces`, `eod_distancias` y las columnas
+  propias de `eod_kpi` salieron identicas bit a bit—. Lo unico que cambio
+  fueron los tres campos que se **copiaban** del indice. La leccion no es sobre
+  la EOD: reconstruir desde el microdato en vez de copiar un agregado ajeno es
+  lo que dejo el banco inmune a una correccion aguas arriba, y el snapshot
+  antes/despues es lo que permitio demostrarlo en vez de suponerlo.
+- `[banco]` 2026-09-06 — **Un 0,0 % en un agregado ajeno casi nunca es una
+  medicion.** El indice declara 0,0 % de no motorizado en Gran Valparaiso y San
+  Antonio, y ninguna ciudad tiene cero viajes a pie: es ausencia codificada
+  como cero, y el tablero la mostraba como dato. Se publica como sin dato. Es
+  la misma familia que el `pct_bicicleta` en cero de Curico, y por eso conviene
+  desconfiar del cero exacto antes que del valor raro.
 
 ### Archivo
 
