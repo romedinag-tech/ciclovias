@@ -29,7 +29,7 @@ agregación a zona censal y el cruce de la EOD a esa zonificación.
 
 Documentado en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md), que es la fase 0 del
 dominio: inventario, cobertura medida año a año y unidad por unidad, nulos por
-campo y por región, nueve trampas demostradas ejecutando, contraste de
+campo y por región, once trampas demostradas ejecutando, contraste de
 referencia sobre el Gran Concepción e indicadores ya calculados, separando los
 publicados y estables de las recetas re-ejecutables.
 
@@ -47,7 +47,10 @@ daltonismo. Un solo `index.html` de 7,7 MB con el payload incrustado.
 El mapa trabaja sobre **zona censal** —la comuna resultó demasiado gruesa para
 ver diferencias dentro de una ciudad— con siete capas: red existente, franja de
 300 m, cartera futura, contadores, siniestros con ciclista, su concentración y
-equipamiento educacional. Cada gráfico se amplía y se descarga como PNG, y el
+equipamiento educacional. Los dos indicadores de la EOD van **normalizados por
+población y condicionados a la muestra**: sólo se pinta la zona con al menos
+cinco viajes en bicicleta encuestados detrás, que a escala nacional es el
+18,3 % de las zonas con EOD. Cada gráfico se amplía y se descarga como PNG, y el
 mapa se exporta como **figura de informe con su leyenda compuesta**.
 
 ## Entradas y salidas
@@ -305,6 +308,37 @@ Todos de la misma familia: **fallas que no lanzan error**.
   en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md), que las demuestra con la consulta que
   las delata. Este archivo las referencia y no las repite: tenerlas en dos lugares
   garantiza que una de las dos versiones envejezca sin que nadie lo note.
+- `[banco]` 2026-09-05 — **La EOD no sostiene el nivel de zona para la
+  bicicleta, y no falla al intentarlo**: produce un número por zona que parece
+  dato. En el Gran Concepción son 800 viajes encuestados en 359 zonas de origen
+  —mediana 2, y 77 zonas con uno solo— expandidos por un factor medio de 42,8.
+  Lo que lo delata no es el tamaño de muestra sino su consecuencia: la razón
+  entre viajes EOD y ciclistas del Censo debería ser casi constante entre zonas
+  de una misma ciudad; en el agregado da 4,25 y por zona va de 0,56 (p10) a
+  12,9 (p90). Por eso `cruza_eod_zonas_censales.py` arrastra `eod_n_gen` y
+  `eod_n_atr`, los viajes **encuestados** detrás de cada cifra. Medido y
+  tabulado ciudad por ciudad en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md),
+  trampa 10.
+- `[visor]` 2026-09-05 — **Una tasa y un conteo puestos en dos coropletas se
+  leen como contradictorios aunque los dos sean correctos.** El `bici_pct` del
+  Censo no depende del tamaño de la zona (ρ con población = −0,03) y los viajes
+  EOD generados sí (+0,33), de modo que la misma zona salía verde en un mapa y
+  roja en el otro. Todo conteo que comparta selector con una tasa va
+  normalizado. Y `eod_bici_gen` contra `eod_bici_atr` eran prácticamente el
+  mismo mapa (ρ = 0,995): lo que distingue al barrio que produce viajes del que
+  los recibe es el **saldo**, con escala divergente en torno a cero, no cada
+  lado por separado.
+- `[visor]` 2026-09-05 — **Un gris de «no medido» tiene que ser distinguible
+  del centro de la escala divergente**, que también es neutro. Con la misma
+  opacidad, `#D9DCE1` y el `#EFEDE4` del centro de BrBG eran indistinguibles y
+  no había forma de separar «zona equilibrada» de «zona sin muestra». Se
+  resuelve con dos señales a la vez: gris más oscuro y opacidad al 42 %, para
+  que la ausencia se lea como ausencia y no como un valor más.
+- `[visor]` 2026-09-05 — **Un indicador divergente no se corta por cuantiles.**
+  El cero tiene significado y los cuantiles lo desplazan a donde caiga la
+  mediana, con lo que una zona equilibrada aparece pintada como si tuviera
+  saldo. Los cortes van simétricos en torno a cero, escalados por el percentil
+  90 del valor absoluto para que unas pocas zonas extremas no aplasten el resto.
 
 ### Archivo
 

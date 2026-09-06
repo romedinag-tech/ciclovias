@@ -24,9 +24,29 @@ por area supondria que la gente se distribuye pareja dentro de la zona, y en una
 zona EOD que mezcla un barrio denso con un paño agricola eso manda viajes al
 potrero. La poblacion por zona censal ya esta calculada en `zona_demanda`.
 
+--------------------------------------------------------------------------
+Por que viaja tambien el tamaño de la muestra
+--------------------------------------------------------------------------
+Los viajes que reparte este cruce son cifras EXPANDIDAS. En el Gran Concepcion
+2015 hay 800 viajes en bicicleta encuestados repartidos en 359 zonas de origen
+—mediana de 2 por zona— y el factor medio de expansion es 42,8. A ese grano un
+solo encuestado pinta una zona entera, y el mapa termina mostrando donde cayo
+la muestra en vez de donde se pedalea.
+
+La prueba: la razon entre viajes EOD y ciclistas del Censo deberia ser mas o
+menos constante entre zonas, porque mide viajes por ciclista. En el agregado
+del Gran Concepcion da 4,25, que es plausible; por zona va de 0,56 (p10) a
+12,9 (p90), con maximo 57,5. Esa dispersion es ruido de muestreo, no
+comportamiento.
+
+Por eso se arrastra `n`, el numero de viajes ENCUESTADOS, hasta la zona
+censal: sin el no hay forma de saber que parte del mapa se puede pintar.
+
 Salida: agrega a `data/analisis/zona_demanda.parquet` las columnas
   eod_bici_gen   viajes en bicicleta generados (origen) en la zona censal
   eod_bici_atr   viajes en bicicleta atraidos (destino)
+  eod_n_gen      viajes ENCUESTADOS detras de `eod_bici_gen` (valor esperado)
+  eod_n_atr      idem para los atraidos
   eod_ciudad     que EOD la cubre, para poder citarla con su año
 
 Uso:  python -X utf8 scripts/cruza_eod_zonas_censales.py
@@ -53,7 +73,8 @@ def clave(s):
 
 def main():
     zc = gpd.read_parquet(AN / "zona_demanda.parquet")
-    zc = zc.drop(columns=[c for c in ["eod_bici_gen", "eod_bici_atr", "eod_ciudad"]
+    zc = zc.drop(columns=[c for c in ["eod_bici_gen", "eod_bici_atr", "eod_n_gen",
+                                      "eod_n_atr", "eod_ciudad"]
                           if c in zc.columns])
     ez = pd.read_parquet(AN / "demanda_eod_zona.parquet")
     ez["zona"] = ez.zona.astype(str).str.replace(r"\.0$", "", regex=True)
@@ -82,10 +103,13 @@ def main():
         ge["geometry"] = ge.geometry.make_valid()
         ge = ge[~ge.geometry.is_empty]
 
-        gen = g[g.lado == "origen"].groupby("zona").viajes.sum().rename("gen")
-        atr = g[g.lado == "destino"].groupby("zona").viajes.sum().rename("atr")
+        gen = g[g.lado == "origen"].groupby("zona").agg(
+            gen=("viajes", "sum"), ngen=("n", "sum"))
+        atr = g[g.lado == "destino"].groupby("zona").agg(
+            atr=("viajes", "sum"), natr=("n", "sum"))
         ge = ge.merge(gen, on="zona", how="left").merge(atr, on="zona", how="left")
-        ge[["gen", "atr"]] = ge[["gen", "atr"]].fillna(0)
+        cols4 = ["gen", "atr", "ngen", "natr"]
+        ge[cols4] = ge[cols4].fillna(0)
         if ge[["gen", "atr"]].to_numpy().sum() <= 0:
             continue
 
@@ -113,8 +137,15 @@ def main():
         inter["w"] = (inter.peso / tot).fillna(0)
         inter["eod_bici_gen"] = inter.gen * inter.w
         inter["eod_bici_atr"] = inter.atr * inter.w
+        # El respaldo muestral se reparte con el mismo peso que los viajes: si
+        # la mitad de la poblacion de una zona EOD de 10 encuestados cae en
+        # esta zona censal, hay 5 encuestados detras de su cifra. Es el valor
+        # esperado, no un conteo entero, y por eso queda con decimal.
+        inter["eod_n_gen"] = inter.ngen * inter.w
+        inter["eod_n_atr"] = inter.natr * inter.w
 
-        r = inter.groupby("zona_cen")[["eod_bici_gen", "eod_bici_atr"]].sum().reset_index()
+        r = inter.groupby("zona_cen")[["eod_bici_gen", "eod_bici_atr",
+                                       "eod_n_gen", "eod_n_atr"]].sum().reset_index()
         r["eod_ciudad"] = f"{ciudad} {int(g.anio.iloc[0])}"
         piezas.append(r.rename(columns={"zona_cen": "zona"}))
         print(f"  {ciudad[:28]:28} {len(ge):4d} zonas EOD -> {len(r):5d} zonas censales")
@@ -126,11 +157,15 @@ def main():
         t = pd.concat(piezas, ignore_index=True)
         t = t.groupby("zona").agg(eod_bici_gen=("eod_bici_gen", "sum"),
                                   eod_bici_atr=("eod_bici_atr", "sum"),
+                                  eod_n_gen=("eod_n_gen", "sum"),
+                                  eod_n_atr=("eod_n_atr", "sum"),
                                   eod_ciudad=("eod_ciudad", "first")).reset_index()
         zc = zc.merge(t, on="zona", how="left")
     else:
         zc["eod_bici_gen"] = np.nan
         zc["eod_bici_atr"] = np.nan
+        zc["eod_n_gen"] = np.nan
+        zc["eod_n_atr"] = np.nan
         zc["eod_ciudad"] = None
 
     for c in zc.columns:
@@ -147,6 +182,13 @@ def main():
     print(f"control: la EOD reporta {ctrl:,.0f} viajes generados en las ciudades "
           f"con zonificacion disponible")
     if con:
+        u = zc[zc.eod_bici_gen.notna()]
+        print("\nrespaldo muestral por ciudad (zonas censales con n >= 5 "
+              "viajes en bicicleta encuestados):")
+        for ciu, g in u.groupby(u.eod_ciudad.astype(str)):
+            ok = int((g.eod_n_gen >= 5).sum())
+            print(f"  {ciu[:28]:28} {ok:4d} de {len(g):4d} ({100*ok/len(g):5.1f} %)")
+
         print("\ndiez zonas censales que mas viajes en bicicleta generan:")
         t = zc.nlargest(10, "eod_bici_gen")
         print(t[["zona", "comuna", "pob", "bici", "eod_bici_gen", "eod_ciudad"]]

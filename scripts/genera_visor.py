@@ -78,6 +78,16 @@ PLANTILLA = r"""<!doctype html>
      no dejaba ver de un vistazo donde se usa mas y donde menos. */
   --u1:#B2182B; --u2:#E4573C; --u3:#FDAE61; --u4:#FFE08A;
   --u5:#C3E07E; --u6:#6FBF52; --u7:#177245;
+  /* Escala DIVERGENTE para el saldo neto de viajes, centrada en cero:
+     cafe = la zona atrae mas de lo que genera (polo), verde azulado = la
+     zona genera mas de lo que recibe (barrio residencial). Es BrBG, que a
+     diferencia del rojo-verde se distingue con deuteranopia. */
+  --d1:#8C510A; --d2:#BF812D; --d3:#DFC27D; --d4:#EFEDE4;
+  --d5:#80CDC1; --d6:#35978F; --d7:#01665E;
+  /* Gris de MUESTRA INSUFICIENTE: hay EOD en la ciudad pero esta zona
+     descansa en menos viajes encuestados de los que sostienen una cifra.
+     Distinto del gris de 'sin dato', que es no haber EOD en absoluto. */
+  --gris-ins:#9AA4B2;
   /* rampa neutra para los graficos (dato no espacial) */
   --seq-1:#EFF3FB; --seq-2:#C6D9F0; --seq-3:#8CB3DE; --seq-4:#4A80C0; --seq-5:#16365A;
   --div-pos:#2166AC; --div-pos-2:#67A9CF;
@@ -99,6 +109,9 @@ PLANTILLA = r"""<!doctype html>
      escalones, legibles sobre fondo casi negro. */
   --u1:#E4736B; --u2:#F0906B; --u3:#F7B267; --u4:#F5D97A;
   --u5:#B6D97A; --u6:#7CC15F; --u7:#3E9C5F;
+  --d1:#D9903C; --d2:#E3B270; --d3:#C8B48A; --d4:#3c4453;
+  --d5:#8FCFC6; --d6:#54B3A8; --d7:#2E9E92;
+  --gris-ins:#5b6675;
   --seq-1:#16283d; --seq-2:#1d4468; --seq-3:#2f6ea8; --seq-4:#4f9ada; --seq-5:#8fc6f5;
   --div-pos:#7FB9EC; --div-pos-2:#4a86bd;
   --e0:#26E0FF; --e1:#00B4E0; --e2:#0E86AE; --e3:#5FA9C0;
@@ -111,6 +124,7 @@ PLANTILLA = r"""<!doctype html>
      distingue con cualquier tipo de daltonismo. */
   --u1:#440154; --u2:#414487; --u3:#2a788e; --u4:#22a884;
   --u5:#7ad151; --u6:#bddf26; --u7:#fde725;
+  /* BrBG ya es seguro para daltonismo; se conserva tal cual. */
   --e0:#ffffff; --e1:#d9d9d9; --e2:#a6a6a6; --e3:#737373;
   --red-casing:#000000;
   --c-sin:#d95f02; --c-cont:#1b9e77; --c-ok:#7570b3;
@@ -466,7 +480,7 @@ body.mapafull #detalle{height:calc(100vh - 250px)}
       </div>
       <div id="detalle"></div>
     </div>
-    <div class="src">La unidad territorial es la <b>zona censal</b>: la comuna resulta demasiado gruesa para ver diferencias dentro de una ciudad, que es donde ocurren. La coropleta se corta por quintiles del indicador dentro del territorio filtrado y puede apagarse para leer la red sin que el relleno la tape. Las distancias son euclidianas desde el centroide de la manzana, no medidas por la red vial.</div>
+    <div class="src">La unidad territorial es la <b>zona censal</b>: la comuna resulta demasiado gruesa para ver diferencias dentro de una ciudad, que es donde ocurren. La coropleta se corta por quintiles del indicador dentro del territorio filtrado y puede apagarse para leer la red sin que el relleno la tape. Las distancias son euclidianas desde el centroide de la manzana, no medidas por la red vial. <b>Los dos indicadores de la EOD no son comparables uno a uno con los del Censo:</b> el Censo es enumeración completa y la EOD es una muestra expandida, con un factor medio de decenas de viajes por encuestado. Por eso van normalizados por población, el saldo se corta con escala divergente en torno a cero, y sólo se pinta la zona con al menos cinco viajes en bicicleta encuestados detrás; el resto queda en gris. En el Gran Concepción eso deja el 14,6&nbsp;% de las zonas pintadas y en Talca el 86,7&nbsp;%, que es exactamente lo que cada encuesta puede sostener a este grano.</div>
   </div>
 
   <div class="grid2">
@@ -1114,10 +1128,12 @@ const IND=[
    d:'Siniestros con participación de bicicleta ocurridos dentro de la zona (CONASET). Es un conteo, no una tasa: las zonas más pobladas o más transitadas acumulan más sin que eso signifique mayor riesgo por viaje.'},
   {k:'nse',t:'Nivel socioeconómico de la zona',s:'',inv:false,
    d:'Índice de 0 a 100 por zona censal. Es un atributo del territorio, no de las personas que viven en él.'},
-  {k:'egen',t:'Viajes en bicicleta generados (EOD)',s:'',inv:false,
-   d:'Viajes diarios en bicicleta que salen de la zona según la Encuesta Origen-Destino, llevados de la zonificacion EOD a la censal repartiendo en proporción a la población de cada trozo. Sólo hay dato en las 15 ciudades con EOD; el resto queda sin dato.'},
-  {k:'eatr',t:'Viajes en bicicleta atraídos (EOD)',s:'',inv:false,
-   d:'Viajes diarios en bicicleta que llegan a la zona. Comparado con los generados, distingue los barrios que producen viajes de los que los reciben: los polos de empleo y estudio atraen más de lo que generan.'},
+  {k:'egpc',t:'Viajes en bicicleta generados (EOD, por 1.000 hab.)',s:'',inv:false,
+   gate:'en',gmin:5,
+   d:'Viajes diarios en bicicleta que salen de la zona según la Encuesta Origen-Destino, por cada 1.000 habitantes. Va normalizado a propósito: el uso de la bicicleta del Censo es una tasa y el conteo de viajes no lo era, de modo que las dos coropletas se contradecían aunque las dos fueran correctas. Sólo se pinta la zona con al menos 5 viajes encuestados detrás; el resto queda en gris, porque la EOD expande cada viaje observado por un factor de decenas y un solo encuestado alcanzaba para pintar una zona entera.'},
+  {k:'esal',t:'Saldo neto de viajes en bicicleta (EOD)',s:'',inv:false,div:true,
+   gate:'ens',gmin:5,
+   d:'Viajes generados menos viajes atraídos. Verde azulado donde la zona produce más viajes de los que recibe —barrio residencial— y café donde atrae más de los que genera, que es la firma de un polo de empleo o estudio. Reemplaza a la capa de atraídos, que resultaba ser casi el mismo mapa que la de generados (correlación de Spearman 0,995) y por eso no distinguía nada. Se pinta sólo donde ambos lados tienen al menos 5 viajes encuestados.'},
   {k:'pob',t:'Población',s:'',inv:false,
    d:'Habitantes de la zona censal según el Censo 2024. Sirve de contexto para leer los demás indicadores.'},
 ];
@@ -1191,8 +1207,32 @@ function quintiles(v,n){
   v=v.slice().sort((a,b)=>a-b);
   return Array.from({length:n-1},(_,i)=>v[Math.max(0,Math.floor((i+1)/n*(v.length-1)))]);
 }
+/* Un indicador divergente no se corta por cuantiles: el cero tiene
+   significado y los cuantiles lo desplazan a donde caiga la mediana, con lo
+   que una zona equilibrada aparece pintada como si tuviera saldo. Los cortes
+   van simetricos en torno a cero, escalados por el percentil 90 del valor
+   absoluto para que unas pocas zonas extremas no aplasten el resto. */
+function cortesDiv(v){
+  const a=v.map(Math.abs).sort((x,y)=>x-y);
+  if(!a.length) return [0,0,0,0,0,0];
+  const q=a[Math.max(0,Math.floor(.9*(a.length-1)))]||1;
+  return [-q,-q*.5,-q*.15,q*.15,q*.5,q];
+}
+/* La escala de uso y la divergente son dos rampas distintas; PAL() sirve la
+   que corresponda al indicador activo. */
+function PALD(){return [cssv('--d1'),cssv('--d2'),cssv('--d3'),cssv('--d4'),
+                        cssv('--d5'),cssv('--d6'),cssv('--d7')];}
+function rampa(){return indAct.div?PALD():PAL();}
+/* `null` distingue dos ausencias que NO son lo mismo y por eso llevan gris
+   distinto: `false` = no hay EOD en esta ciudad; `true` = la hay, pero esta
+   zona descansa en muy pocos viajes encuestados. */
+function insuficiente(z){
+  if(!indAct.gate) return false;
+  const n=z[indAct.gate];
+  return n!==null&&n!==undefined&&isFinite(n)&&n<indAct.gmin;
+}
 function colorDe(v){
-  const P=PAL();
+  const P=rampa();
   if(v===null||v===undefined||!isFinite(v)) return cssv('--surface-alt');
   let i=0; while(i<cortes.length&&v>cortes[i])i++;
   return indAct.inv?P[P.length-1-i]:P[i];
@@ -1205,25 +1245,45 @@ function pintaPoli(){
   if(!coroVisible){ leyenda(); return; }
   const satel=document.querySelector('#mapBase button.on').dataset.b==='satelite';
   const op=satel?0.55:0.72;
-  const vals=zs.map(z=>z[indAct.k]).filter(v=>v!==null&&v!==undefined&&isFinite(v));
-  cortes=quintiles(vals.length?vals:[0],7);
+  // Las zonas sin respaldo muestral quedan fuera del calculo de los cortes,
+  // no solo del pintado: si entraran, sus valores \u2014que son ruido\u2014 definirian
+  // las clases del resto del mapa.
+  const vals=zs.filter(z=>!insuficiente(z)).map(z=>z[indAct.k])
+               .filter(v=>v!==null&&v!==undefined&&isFinite(v));
+  cortes=indAct.div?cortesDiv(vals):quintiles(vals.length?vals:[0],7);
+  const nIns=zs.filter(insuficiente).length;
+  if(nIns) document.getElementById('mapHint').textContent+=
+    ' \u00b7 ' + fmt(nIns) + ' sin muestra suficiente';
   capaZona=L.layerGroup();
   zs.forEach(z=>z.g.forEach(anillo=>{
-    const p=L.polygon(anillo,{pane:'pPoli',fillColor:colorDe(z[indAct.k]),fillOpacity:op,
+    const ins=insuficiente(z);
+    // La zona sin respaldo se dibuja mas apagada ademas de gris: con la misma
+    // opacidad que el resto competia con el centro de la escala divergente,
+    // que tambien es neutro, y no habia forma de distinguir «equilibrada» de
+    // «no medida». Atenuada, se lee como ausencia y no como valor.
+    const p=L.polygon(anillo,{pane:'pPoli',
+      fillColor:ins?cssv('--gris-ins'):colorDe(z[indAct.k]),
+      fillOpacity:ins?op*0.42:op,
       color:'#fff',weight:.35});
-    p.bindTooltip('<b>'+z.nom+'</b> \u00b7 zona '+z.z+'<br>'+indAct.t+': '+fmt(z[indAct.k],1)+indAct.s,{sticky:true});
+    p.bindTooltip('<b>'+z.nom+'</b> \u00b7 zona '+z.z+'<br>'+(ins
+      ? 'Muestra insuficiente: '+fmt(z[indAct.gate],1)+' viajes encuestados'
+      : indAct.t+': '+fmt(z[indAct.k],1)+indAct.s
+        +(indAct.gate?'<br><span style="opacity:.7">'+fmt(z[indAct.gate],1)
+          +' viajes encuestados detr\u00e1s</span>':'')),{sticky:true});
     p.on('click',ev=>{L.DomEvent.stop(ev);sel={tipo:'zona',d:z};panelDetalle();});
     capaZona.addLayer(p);}));
   capaZona.addTo(map);
   leyenda();
 }
 function leyenda(){
-  const P=PAL(), n=P.length;
+  const P=rampa(), n=P.length;
   let h='';
   if(coroVisible&&cortes.length){
     const et=cortes.map(c=>'\u2264 '+fmt(c,1)).concat(['> '+fmt(cortes[cortes.length-1],1)]);
     h+='<div class="grp"><span class="ttl">'+indAct.t+(indAct.s.trim()?' ('+indAct.s.trim()+')':'')+'</span>';
     et.forEach((e,i)=>h+='<span class="sw" style="background:'+(indAct.inv?P[n-1-i]:P[i])+'"></span>'+e);
+    if(indAct.gate) h+='<span class="sw" style="background:'+cssv('--gris-ins')
+      +'"></span>muestra insuficiente (< '+indAct.gmin+' viajes encuestados)';
     h+='<span class="sw" style="background:'+cssv('--surface-alt')+'"></span>sin dato</div>';
   } else {
     h+='<div class="grp"><span class="ttl">Coropleta oculta</span>para leer la red sin relleno de fondo</div>';
@@ -1344,7 +1404,11 @@ function panelDetalle(){
       +(z.sinf?fila('Con resultado de muerte',fmt(z.sinf)):'')
       +(z.egen!=null?fila('Viajes en bici generados (EOD)',fmt(z.egen)):'')
       +(z.eatr!=null?fila('Viajes en bici atraídos (EOD)',fmt(z.eatr)):'')
+      +(z.egpc!=null?fila('Generados por 1.000 hab.',fmt(z.egpc,1)):'')
+      +(z.esal!=null?fila('Saldo neto (generados − atraídos)',fmt(z.esal)):'')
+      +(z.en!=null?fila('Viajes encuestados detrás',fmt(z.en,1)):'')
       +(z.eciu?'<div class="sub" style="margin-top:6px">Fuente EOD: '+z.eciu+'</div>':'')
+      +((z.en!=null&&z.en<5)?'<div class="nota">Las cifras de la EOD en esta zona descansan en '+fmt(z.en,1)+' viajes encuestados. La encuesta expande cada viaje observado por un factor de decenas, de modo que a este grano el valor es ruido de muestreo y no se pinta en el mapa. La EOD sí es representativa al nivel de la ciudad, que es donde se lee en la sección de demanda.</div>':'')
       +((z.bp>3.8&&z.d>600)?'<div class="nota">Zona con uso de bicicleta sobre el promedio nacional y sin red cerca: demanda que ya existe sin infraestructura que la acompa\u00f1e.</div>':'');
     return;
   }
@@ -1650,7 +1714,8 @@ async function figuraMapa(){
   c.fillStyle=F.mut; c.font='12px Inter, system-ui, sans-serif';
   const amb=ambito();
   c.fillText(amb+'  ·  '+fmt(D.zonas.filter(z=>enFiltro(z.c)).length)+' zonas censales'
-    +'  ·  '+(coroVisible?'coropleta por quintiles':'sin coropleta'),padX,48);
+    +'  ·  '+(coroVisible?(indAct.div?'coropleta divergente en torno a cero'
+        :'coropleta por quintiles'):'sin coropleta'),padX,48);
 
   // leyenda
   let y=cabecera+H+22;
@@ -1677,11 +1742,13 @@ async function figuraMapa(){
 // La leyenda se reconstruye como datos y no se copia del DOM: dibujarla sobre
 // el canvas exige conocer color, forma y texto de cada item por separado.
 function leyendaFilas(){
-  const P=PAL(), n=P.length, filas=[];
+  const P=rampa(), n=P.length, filas=[];
   if(coroVisible&&cortes.length){
     const et=cortes.map(x=>'\u2264 '+fmt(x,1)).concat(['> '+fmt(cortes[cortes.length-1],1)]);
-    filas.push({titulo:indAct.t+(indAct.s.trim()?' ('+indAct.s.trim()+')':'')+':',
-      items:et.map((e,i)=>({color:indAct.inv?P[n-1-i]:P[i],txt:e,forma:'caja'}))});
+    const it=et.map((e,i)=>({color:indAct.inv?P[n-1-i]:P[i],txt:e,forma:'caja'}));
+    if(indAct.gate) it.push({color:cssv('--gris-ins'),forma:'caja',
+      txt:'muestra insuficiente (< '+indAct.gmin+' viajes encuestados)'});
+    filas.push({titulo:indAct.t+(indAct.s.trim()?' ('+indAct.s.trim()+')':'')+':',items:it});
   }
   const red=[]; ETAPAS.forEach((e,i)=>{
     const cap=[cRed,cPlan,cPlan,cPlan][i];

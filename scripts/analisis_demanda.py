@@ -213,12 +213,19 @@ def reconstruye_eod():
             for k, v in s.items():
                 perfil.append(dict(ciudad=ciudad, anio=anio, dim="hora",
                                    valor=str(int(k)), viajes=v))
+        # Junto a los viajes expandidos se guarda `n`, el numero de viajes
+        # ENCUESTADOS que hay detras. Sin el, el mapa por zona no se puede
+        # leer: en el Gran Concepcion 2015 hay 800 registros de bicicleta
+        # repartidos en 359 zonas de origen —mediana de 2— y el factor medio
+        # de expansion es 42,8, de modo que un solo encuestado pinta una zona
+        # entera. `n` es lo que permite pintar solo lo que la muestra sostiene.
         for lado, col in [("origen", "zona_origen"), ("destino", "zona_destino")]:
             if col in b.columns:
-                s = b.groupby(b[col].astype(str)).f.sum()
-                for k, v in s.items():
+                gb = b.groupby(b[col].astype(str)).f
+                sv, sn = gb.sum(), gb.size()
+                for k, v in sv.items():
                     zonas.append(dict(ciudad=ciudad, anio=anio, lado=lado,
-                                      zona=k, viajes=v))
+                                      zona=k, viajes=v, n=int(sn[k])))
     return (pd.DataFrame(filas), pd.DataFrame(perfil), pd.DataFrame(zonas))
 
 

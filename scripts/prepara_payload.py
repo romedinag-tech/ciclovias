@@ -311,6 +311,26 @@ def main():
 
     gz = gpd.read_parquet(AN / "zona_demanda.parquet")
     gz["geometry"] = gz.geometry.simplify(TOL_ZONA, preserve_topology=False)
+    # Los dos indicadores EOD que van al mapa son derivados, y cada uno arregla
+    # un problema distinto de los que tenian los conteos crudos:
+    #   egen_pc  normaliza por poblacion. `bp` (Censo) es una tasa y no depende
+    #            del tamaño de la zona (rho con poblacion = -0,03); los viajes
+    #            generados si (rho = +0,33), de modo que las dos coropletas se
+    #            contradecian aunque ambas fueran correctas.
+    #   esaldo   generados y atraidos eran practicamente el mismo mapa
+    #            (rho de Spearman = 0,995). Lo que distingue a un barrio que
+    #            produce viajes de uno que los recibe es el saldo, no cada
+    #            lado por separado.
+    # `en` es el respaldo muestral: viajes encuestados detras de la cifra.
+    pob = pd.to_numeric(gz.pob, errors="coerce").replace(0, np.nan)
+    gz["egen_pc"] = 1000 * pd.to_numeric(gz.eod_bici_gen, errors="coerce") / pob
+    gz["esaldo"] = (pd.to_numeric(gz.eod_bici_gen, errors="coerce")
+                    - pd.to_numeric(gz.eod_bici_atr, errors="coerce"))
+    # El saldo se sostiene solo si ambos lados tienen muestra, asi que se toma
+    # el menor de los dos; para los generados basta el suyo.
+    gz["en"] = pd.to_numeric(gz.eod_n_gen, errors="coerce")
+    gz["en_sal"] = np.minimum(pd.to_numeric(gz.eod_n_gen, errors="coerce"),
+                              pd.to_numeric(gz.eod_n_atr, errors="coerce"))
     D["zonas"] = [{
         "z": r.zona, "c": str(r.cut_com or "").zfill(5),
         "nom": (str(r.comuna) if pd.notna(r.comuna) else "")[:28],
@@ -321,6 +341,10 @@ def main():
         "sinf": nn(getattr(r, "sin_fall", None), 0),
         "egen": nn(getattr(r, "eod_bici_gen", None), 0),
         "eatr": nn(getattr(r, "eod_bici_atr", None), 0),
+        "egpc": nn(getattr(r, "egen_pc", None), 1),
+        "esal": nn(getattr(r, "esaldo", None), 0),
+        "en": nn(getattr(r, "en", None), 1),
+        "ens": nn(getattr(r, "en_sal", None), 1),
         "eciu": (str(getattr(r, "eod_ciudad", "") or "") or None),
         "g": coords_poli(r.geometry),
     } for r in gz.itertuples()]

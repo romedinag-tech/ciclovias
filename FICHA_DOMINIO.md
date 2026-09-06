@@ -51,7 +51,7 @@ editable. **No sumarla a la capa 0.**
 | `minvu_equipamientos` | 5.504 | Equipamiento cercano a ciclovías |
 | `sectra_mediciones_antofagasta_talca` | 128 | Puntos de conteo con reparto por período, **sólo dos ciudades** |
 | `manzana_cobertura` | 197.168 | Distancia de cada manzana a la red, con perfil censal y NSE |
-| `zona_demanda` | 4.577 | Zona censal con demanda, cobertura, NSE, siniestros y viajes EOD |
+| `zona_demanda` | 4.577 | Zona censal con demanda, cobertura, NSE, siniestros y viajes EOD, cada uno con su respaldo muestral |
 | `siniestros_bici` | 13.357 | Siniestros con ciclista georreferenciados (CONASET) |
 | `eod_kpi`, `eod_cruces`, `eod_distancias` | 18 / 621 / 297 | Demanda de la EOD por ciudad |
 
@@ -209,6 +209,57 @@ nacional:
 
 Se adopta 20 m, donde la curva se aplana.
 
+**10 · La EOD no sostiene el nivel de zona para la bicicleta.** Es la trampa más cara de este banco,
+porque no falla: produce un número para cada zona y ese número parece un dato. La EOD del Gran
+Concepción 2015 tiene **800 viajes en bicicleta encuestados repartidos en 359 zonas de origen** —la
+mediana es de **2 registros por zona** y 77 zonas descansan en uno solo—, con un factor medio de
+expansión de **42,8** viajes por registro y máximo de 124,2. Un solo encuestado alcanza para pintar
+una zona entera.
+
+La prueba no es el tamaño de muestra sino su consecuencia medible. La razón entre viajes EOD y
+ciclistas del Censo mide viajes por ciclista y debería ser aproximadamente constante entre zonas de
+una misma ciudad. En el agregado del Gran Concepción da **4,25**, que es plausible para todos los
+propósitos y los dos sentidos; por zona va de **0,56 (p10) a 12,9 (p90)**, con máximo 57,5. Un caso
+concreto: la zona 810804005 de San Pedro de la Paz tiene **18 ciclistas censados y 653 viajes EOD
+generados**. Esa dispersión de factor 23 es ruido de muestreo, no comportamiento.
+
+Por eso `cruza_eod_zonas_censales.py` arrastra `eod_n_gen` y `eod_n_atr`, el número de viajes
+**encuestados** detrás de cada cifra, y ningún producto debe publicar la cifra expandida por zona sin
+consultarlos. Zonas censales que alcanzan cinco viajes encuestados, que es el piso que se adoptó:
+
+| EOD | Zonas censales | Con n ≥ 5 | |
+|---|---:|---:|---:|
+| Talca 2022 | 90 | 78 | 86,7 % |
+| Curicó 2014 | 48 | 40 | 83,3 % |
+| Chillán 2023 | 67 | 50 | 74,6 % |
+| Valdivia 2013 | 44 | 30 | 68,2 % |
+| Temuco-Padre las Casas 2013 | 98 | 57 | 58,2 % |
+| Rancagua-Machalí 2018 | 95 | 50 | 52,6 % |
+| Osorno 2013 | 47 | 19 | 40,4 % |
+| Copiapó 2010 | 43 | 17 | 39,5 % |
+| Arica 2010 | 71 | 28 | 39,4 % |
+| Gran Concepción 2015 | 294 | 43 | 14,6 % |
+| Punta Arenas 2019 | 42 | 6 | 14,3 % |
+| Coquimbo-La Serena 2010 | 113 | 14 | 12,4 % |
+| Gran Santiago 2012 | 1.825 | 123 | 6,7 % |
+| Iquique-Alto Hospicio 2010 | 78 | 1 | 1,3 % |
+| Puerto Montt 2014 | 75 | 0 | 0,0 % |
+| **Total** | **3.030** | **556** | **18,3 %** |
+
+Es decir: **el 81,7 % de las zonas censales con EOD no tiene muestra para hablar de bicicleta**. En
+las seis primeras ciudades el mapa por zona se sostiene; en el Gran Santiago y el Gran Concepción, no.
+Donde no alcanza, la EOD se lee al nivel en que es representativa —la ciudad—, que es lo que entregan
+`demanda_eod_ciudad` y `eod_kpi`.
+
+**11 · Una tasa y un conteo no se comparan en dos coropletas.** Del mismo par de indicadores. El
+`bici_pct` del Censo es una tasa y no depende del tamaño de la zona (ρ de Spearman con la población
+= **−0,03**); los viajes EOD generados son un conteo y sí lo arrastran (**+0,33**). Puestos uno al
+lado del otro se leen como contradictorios aunque ambos sean correctos: una zona de 6.743 habitantes
+con 0,6 % de uso genera más viajes que una de 2.736 con 6,3 %. Cualquier producto que muestre los dos
+debe normalizar el conteo. Y `eod_bici_gen` frente a `eod_bici_atr` son **prácticamente el mismo
+mapa** (ρ = **0,995**): lo que distingue un barrio que produce viajes de uno que los recibe es el
+saldo, no cada lado por separado.
+
 ## Contraste de referencia · Gran Concepción, 12 comunas
 
 Calculado ahora. Sirve para comprobar que una consulta nueva sobre este banco da lo mismo.
@@ -265,8 +316,8 @@ No tienen cifra propia: producen una para el área que se les pida. Todas declar
 | **Cruces por atributo de la persona** | Participación de la bicicleta por sexo, edad, quintil, propósito, período y hora | Ciudad × dimensión | `analisis_eod_cruces.py` | Se publica la **participación dentro del grupo**, no el volumen. Sólo ~10 ciudades tienen quintil de ingreso |
 | **Distribución de distancias** | Reparto del 100 % de los viajes por rango, bicicleta contra todos los modos | Ciudad × modo × tramo | `analisis_eod_distancias.py` | Distancia entre centroides de zona; el intrazonal se estima con 0,7 del radio equivalente. Resuelta en el 95,6 % de los viajes. Subestima el recorrido real |
 | **Agregación a zona censal** | Demanda, cobertura, NSE y siniestros por zona | Zona censal (4.577) | `analisis_zonas.py` | La distancia de la zona es la de sus manzanas **ponderada por población**, no el promedio simple |
-| **EOD llevada a zona censal** | Viajes en bicicleta generados y atraídos, en la zonificación del visor | Zona censal (3.030 con dato) | `cruza_eod_zonas_censales.py` | Reparto proporcional a la **población** del trozo, no al área. Conserva el 97,8 % de los viajes; el resto son zonas EOD sin contraparte censal |
-| **Panel del catastro** | Los cuatro cortes con campos homogeneizados y llave normalizada | Tramo × corte (16.001) | `normaliza.py` | Filtrar `etapa == 'existentes'` para hablar de red construida |
+| **EOD llevada a zona censal** | Viajes en bicicleta generados y atraídos, en la zonificación del visor, cada uno con los viajes **encuestados** que lo sostienen (`eod_n_gen`, `eod_n_atr`) | Zona censal (3.030 con dato, sólo **556 con n ≥ 5**) | `cruza_eod_zonas_censales.py` | Reparto proporcional a la **población** del trozo, no al área. Conserva el 97,8 % de los viajes. **Nunca publicar la cifra expandida por zona sin mirar `eod_n_gen`**: el 81,7 % de las zonas descansa en menos de cinco viajes encuestados y a ese grano el valor es ruido (trampa 10). Normalizar por población antes de compararla con el `bici_pct` del Censo (trampa 11) |
+| **Panel del catastro** | Los cuatro cortes con campos homogeneizados y llave normalizada | Tramo × corte (16.001) | `normaliza.py` | Filtrar **los dos** ejes: `corte` y `etapa`. Filtrar sólo por `etapa == 'existentes'` suma las cuatro versiones y da 10.356,9 km en vez de los 2.827,7 del corte vigente |
 
 ### Una advertencia sobre el `CLASIF` del ICC
 
