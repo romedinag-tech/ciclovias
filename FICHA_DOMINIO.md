@@ -114,7 +114,9 @@ que desaparezca del conteo.
 ### Nulos, campo por campo (corte vigente, 4.850 tramos)
 
 El catastro casi no tiene celdas vacías: lo que tiene es el pseudo-valor **`s_i`**, que significa
-«sin información» y **no es nulo**, de modo que `notna()` lo cuenta como dato.
+«sin información» y **no es nulo**, de modo que `notna()` lo cuenta como dato. La excepción es
+`year_ejecucion`, cuyo «sin informar» venía como cadena vacía y hoy queda NULL (trampa 1b). Medido el
+2026-09-15 sobre el panel ya limpio:
 
 | Campo | Nulo | `s_i` |
 |---|---:|---:|
@@ -123,13 +125,13 @@ El catastro casi no tiene celdas vacías: lo que tiene es el pseudo-valor **`s_i
 | `tipo` | 0,0 % | 8,6 % |
 | `carac_func` | 0,0 % | 41,6 % |
 | `emplaza_txt` | 0,0 % | 43,4 % |
-| `nombre_proyecto` | 0,6 % | 44,0 % |
+| `nombre_proyecto` | 0,6 % | 43,6 % |
 | `bip_pmu` | 0,6 % | 56,5 % |
-| `year_ejecucion` | 2,6 % | 56,6 % |
+| `year_ejecucion` | 59,2 % | 0,0 % |
 | `normativa` | 0,8 % | 68,9 % |
 
-**El `year_ejecucion` está sin informar en el 56,6 % del catastro completo pero completo al 100 % en
-la red existente.** Esa distinción es lo que permite medir construcción: el año existe para lo
+**El `year_ejecucion` está sin informar en el 59,2 % del catastro completo pero completo al 100 % en
+la red existente** (1.971 de 1.971 tramos). Esa distinción es lo que permite medir construcción: el año existe para lo
 construido, no para la cartera.
 
 ### Nulos por unidad territorial
@@ -157,6 +159,30 @@ traen cuatro dígitos y 2.354 cinco. Medido: filtrar `CUT_COM == '08101'` sobre 
 devuelve **0 tramos**; filtrar `'8101'` devuelve 92. Sobre `catastro_panel` la consulta correcta
 `cut_com == '08101'` devuelve los mismos 92. **Usar siempre el panel, o aplicar `zfill(5)` antes de
 cualquier cruce.**
+
+Pero `zfill(5)` sólo es seguro si el CUT existe. **En 26 tramos de los cortes históricos SECTRA entrega
+`CUT_COM = 0` o `1`, y en otros 2 lo deja vacío.** El relleno convertía el cero en `'00000'`: una llave
+con forma válida que no es ninguna comuna, que no falla en ningún cruce y que en el corte 2025-07
+contaba como dos comunas más con red existente (216 en vez de 214). Lo detectó el Hub Multidato el
+2026-09-15. Desde entonces `normaliza.py` resuelve por **nombre normalizado** todo CUT que no esté
+entre las 345 comunas INE —los 28 se resolvieron, 11 de 2024-09, 13 de 2024-11 y 4 de 2025-07; el corte
+vigente no tiene ninguno—, lo declara en `cut_com_origen` (`declarado` o `nombre`) y **falla** si algún
+`cut_com` no nulo queda fuera de las 345. El cruce por nombre necesita además tres alias, porque SECTRA
+escribe La Calera, Llay Llay y Puerto Aysén donde el INE dice Calera, Llaillay y Aysén.
+
+**1b · Espacio duro y espacios de borde.** `comuna_txt` traía U+00A0 en 46 filas («Viña del Mar» con
+espacio duro, que un cruce exacto no encuentra) y `nombre_proyecto` en 54; `eje_via` tenía espacios repetidos o de borde
+en 167. Y en `year_ejecucion` las 2.744 celdas «sin informar» del corte vigente eran **cadenas
+vacías**, no el pseudo-valor `s_i`: `notna()` las contaba como dato. Todo campo de texto del panel pasa
+ahora por una limpieza que convierte el espacio duro, colapsa espacios y deja el vacío como NULL.
+
+**1c · La llave que la geometría contradice.** `dist_comuna_llave_m` mide la distancia de cada tramo a
+la comuna de su llave. Un tramo que corre por el límite comunal no es un error: de 362 tramos cuyo punto
+medio cae en la comuna vecina, 236 tocan la suya y 53 están a menos de 50 m. El conflicto real son **43
+tramos a más de 500 m de su comuna, todos en cortes históricos y ninguno en el vigente**, varios con el
+CUT corrido en una unidad (Renca `13128` cae en `13127`, San Joaquín `13129` en `13128`). Se marcan en
+`cut_com_discrepa_geo` y **no se corrigen**, porque no hay regla segura: en unos acierta el nombre y en
+otros el CUT. Quien use los cortes históricos por comuna debe excluirlos o revisarlos.
 
 **2 · `CUT_REG` contradice a la comuna en cinco registros.** Colina aparece declarada en la región 6,
 y tramos de Negrete y Los Ángeles en la región 9 siendo del Biobío. El `cut_com` está correcto en los

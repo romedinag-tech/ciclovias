@@ -362,6 +362,35 @@ Todos de la misma familia: **fallas que no lanzan error**.
   como cero, y el tablero la mostraba como dato. Se publica como sin dato. Es
   la misma familia que el `pct_bicicleta` en cero de Curico, y por eso conviene
   desconfiar del cero exacto antes que del valor raro.
+- `[banco]` 2026-09-15 — **Un reporte externo acierta en las cifras y puede
+  errar en el mecanismo; se arregla el mecanismo medido.** El Hub Multidato
+  reportó 26 tramos con `cut_com` en `00000`/`00001` y atribuyó la causa al
+  espacio duro de `comuna_txt`, que rompía «la normalización por nombre». Las
+  cifras eran exactas (46 y 54 filas con U+00A0), pero `normaliza.py` **no
+  hacía ningún cruce por nombre**: SECTRA entrega `CUT_COM = 0` y `zfill(5)` lo
+  volvía `00000`. Limpiar sólo el espacio no habría recuperado ni un tramo.
+  Además eran 28, no 26: dos CUT nulos no empiezan con `00` y el síntoma
+  buscado no los veía. Ahora el CUT fuera de las 345 comunas INE se resuelve
+  por nombre, se declara en `cut_com_origen`, y el script **falla** si queda
+  alguno —control probado inyectando una llave mala, porque un control que
+  nunca se vio fallar no está verificado—. Detalle en la ficha, trampas 1 a 1c.
+- `[banco]` 2026-09-15 — **Mi primer conteo de U+00A0 dio cero y eran 46, y
+  el motivo no era el que supuse.** La auditoría recorría «las columnas de
+  texto» filtrando `dtype == object or str(dtype).startswith('string')`, y en
+  pandas 3 el dtype de texto se llama `str`: la columna se **saltaba entera** y
+  el reporte decía «nada» sin error. La primera hipótesis —que el accesor
+  `.str.contains` fallaba con ese dtype— resultó falsa al probarla: da 46 igual
+  que iterar. Todo filtro por tipo de texto acepta `object`, `str` y `string`,
+  y un «no encontré nada» se contrasta contra un caso conocido antes de creerlo.
+- `[banco]` 2026-09-15 — **El snapshot antes/después separa lo propio de lo
+  ajeno.** Re-ejecutar cobertura para verificar el arreglo de la llave trajo
+  cambios que no eran de ese arreglo: `GIS Gran Concepción` regeneró
+  `analysis_zona.parquet` ese día y el NSE se movió en 13.901 manzanas y 17
+  comunas (±0,1 punto), más el contorno de Punta Arenas. El arreglo de la llave
+  resultó neutro en todos los análisis —distancias, cobertura y componentes
+  idénticos— y el NSE se restauró del snapshot para no publicar una zona censal
+  con NSE de una fecha y manzanas de otra. **Pendiente decidir** si se
+  incorpora esa actualización del NSE, re-ejecutando la cadena completa.
 
 ### Archivo
 
