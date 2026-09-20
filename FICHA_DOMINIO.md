@@ -1,7 +1,11 @@
 # Ficha de dominio · CICLOVÍAS Y MOVILIDAD ACTIVA
 
 > Qué hay en este banco y cómo se usa, para no tener que volver a analizarlo cada vez.
-> **Todas las cifras se midieron ejecutando sobre los archivos el 4 de septiembre de 2026.**
+> **Todas las cifras se midieron ejecutando sobre los archivos el 4 de septiembre de 2026**, y se
+> volvieron a medir el **19 de septiembre de 2026**: las del catastro, la cobertura y la EOD se
+> reprodujeron sin cambio. Ese día se incorporó además la actualización del NSE de
+> `GIS Gran Concepción` (13.901 manzanas y 17 comunas, ±0,1 punto), que no movió su cobertura:
+> 96,8 % de las manzanas y 4.561 de las 4.577 zonas siguen con NSE resuelto.
 > Lo que no se pudo medir se declara como brecha; nada se deduce del nombre de un archivo.
 
 ## Inventario
@@ -341,7 +345,7 @@ No tienen cifra propia: producen una para el área que se les pida. Todas declar
 | **Reconstrucción de la bicicleta en la EOD** | La participación de la bicicleta en cada EOD, separándola del grupo no motorizado | Ciudad-año | `analisis_demanda.py` → `demanda_eod_ciudad` | Validada contra el informe oficial en las 8 ciudades donde ese índice es consistente: r = 0,9999. En las otras 7 el índice se contradice y queda marcado |
 | **Cruces por atributo de la persona** | Participación de la bicicleta por sexo, edad, quintil, propósito, período y hora | Ciudad × dimensión | `analisis_eod_cruces.py` | Se publica la **participación dentro del grupo**, no el volumen. Sólo ~10 ciudades tienen quintil de ingreso |
 | **Distribución de distancias** | Reparto del 100 % de los viajes por rango, bicicleta contra todos los modos | Ciudad × modo × tramo | `analisis_eod_distancias.py` | Distancia entre centroides de zona; el intrazonal se estima con 0,7 del radio equivalente. Resuelta en el 95,6 % de los viajes. Subestima el recorrido real |
-| **Agregación a zona censal** | Demanda, cobertura, NSE y siniestros por zona | Zona censal (4.577) | `analisis_zonas.py` | La distancia de la zona es la de sus manzanas **ponderada por población**, no el promedio simple |
+| **Agregación a zona censal** | Demanda, cobertura, NSE y siniestros por zona | Zona censal (4.577) | `analisis_zonas.py` | La distancia de la zona es la de sus manzanas **ponderada por población**, no el promedio simple. Los siniestros se asignan por **cruce espacial** del punto: la columna `zona` de `siniestros_bici` dice `URBANA`/`RURAL` y no es la zona censal. Quedan en una zona 12.022 de los 13.357 georreferenciados, y 11.607 en zonas con cobertura de manzanas |
 | **EOD llevada a zona censal** | Viajes en bicicleta generados y atraídos, en la zonificación del visor, cada uno con los viajes **encuestados** que lo sostienen (`eod_n_gen`, `eod_n_atr`) | Zona censal (3.030 con dato, sólo **556 con n ≥ 5**) | `cruza_eod_zonas_censales.py` | Reparto proporcional a la **población** del trozo, no al área. Conserva el 97,8 % de los viajes. **Nunca publicar la cifra expandida por zona sin mirar `eod_n_gen`**: el 81,7 % de las zonas descansa en menos de cinco viajes encuestados y a ese grano el valor es ruido (trampa 10). Normalizar por población antes de compararla con el `bici_pct` del Censo (trampa 11) |
 | **Panel del catastro** | Los cuatro cortes con campos homogeneizados y llave normalizada | Tramo × corte (16.001) | `normaliza.py` | Filtrar **los dos** ejes: `corte` y `etapa`. Filtrar sólo por `etapa == 'existentes'` suma las cuatro versiones y da 10.356,9 km en vez de los 2.827,7 del corte vigente |
 

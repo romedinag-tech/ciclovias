@@ -39,9 +39,9 @@ Sobre las 145.473 manzanas urbanas con nivel socioeconómico resuelto, la cobert
 | Quintil de NSE | Población | Cubierta a 300 m | Bicicleta como modo |
 |---|---:|---:|---:|
 | Q1 (más bajo) | 2.710.467 | 30,3 % | 4,6 % |
-| Q2 | 2.723.131 | 31,3 % | 3,9 % |
-| Q3 | 2.789.661 | 33,5 % | 4,0 % |
-| Q4 | 2.776.686 | 35,9 % | 3,3 % |
+| Q2 | 2.720.119 | 31,3 % | 3,9 % |
+| Q3 | 2.779.541 | 33,5 % | 4,0 % |
+| Q4 | 2.789.818 | 36,0 % | 3,3 % |
 | Q5 (más alto) | 3.931.824 | 45,1 % | 3,0 % |
 
 La brecha entre el quintil más bajo y el más alto es de **14,8 puntos porcentuales** de cobertura, mientras el uso de la bicicleta corre en sentido contrario: 4,6 % en el quintil bajo contra 3,0 % en el alto.

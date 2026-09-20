@@ -17,3 +17,6 @@ desktop.ini
 # Crudos pesados: el Parquet de data/parquet/ es la fuente de trabajo y ese SI
 # va versionado. El GeoJSON crudo se regenera con scripts/descarga_arcgis.py.
 data/raw/*.geojson
+
+# Recados del hub: son suyos y no se publican
+_hub_encargos/

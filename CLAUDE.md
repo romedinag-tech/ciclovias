@@ -2,6 +2,122 @@
 
 ## Propósito
 
+Banco de datos propio sobre infraestructura ciclista y uso de la bicicleta en
+Chile, construido desde las fuentes oficiales de SECTRA/MTT y MINVU y cruzado con
+Censo 2024, EOD y siniestralidad. Tiene **dos dimensiones**: **banco** —los datos
+y los análisis, para responder preguntas a medida que todavía no existen— y
+**visor** —el sitio publicado, para leer la información en formato gráfico sin
+abrir un entorno de análisis—. El visor no tiene fuentes propias: consume lo que
+produce el banco.
+
+## Estado
+
+activo
+
+Última actividad: 2026-09-19 (`4811871`).
+
+> **Al abrir:** `python -X utf8 "C:/Users/Rodrigo/Análisis RMG/_orquestador/orquestador.py" --abiertos ciclovias`
+> — qué encargos tengo abiertos y si el archivo citado ya cambió. Los recados del
+> hub llegan a `_hub_encargos/`. Protocolo: `Análisis RMG/_orquestador/PROTOCOLO.md`.
+
+### banco
+
+Operativo. 17 capas descargadas (63.925 registros, 0 fallos) normalizadas a un
+panel de cuatro cortes (16.001 tramos), más ocho scripts de análisis y cruce que
+producen **17 salidas**. Documentado en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md),
+que es la fase 0 del dominio y demuestra **13 trampas** ejecutando.
+
+Sin resolver, y anotado como tal: el pico de **714,9 km declarados con año de
+ejecución 2017** —el 25,3 % de la red existente— no está confirmado con SECTRA.
+
+### visor
+
+Publicado en <https://romedinag-tech.github.io/ciclovias/>. Tres secciones
+—infraestructura, demanda, espacial—, tema claro/oscuro y paleta para daltonismo,
+en un solo `index.html` de 7,89 MB con el payload incrustado. El mapa trabaja
+sobre **zona censal** (4.577) con siete capas; los dos indicadores de la EOD van
+normalizados por población y **condicionados a la muestra** (556 de 3.030 zonas
+con EOD, 18,3 %).
+
+## Entradas y salidas
+
+**Produce**, y otros consumen:
+
+- `data/analisis/` — **contrato de 17 salidas** que consume la skill
+  `diag-ciclovias`. Renombrar o borrar una columna la rompe sin aviso.
+- `data/parquet/catastro_panel.parquet` — la tabla canónica del catastro.
+- El visor publicado, y las figuras de informe que exporta.
+- Detalle en [`SALIDAS.md`](SALIDAS.md), que se autogenera desde
+  `_diagnostico_kit/catalogo.json`.
+
+**Consume, todo en solo lectura:** `GIS Gran Concepción` (manzanas y zonas Censo
+2024, NSE por zona, geometría comunal), `EODs` (EOD homologadas, dataset
+analítico e índice), `dashboard accidentes` (siniestros con ciclista),
+`SERVEL/anclas` (directorio MINEDUC) y
+`Hub Multidato\datos_oro\uso_suelo\comuna.geojson` (las 345 comunas INE, que
+es la capa contra la que se valida la llave comunal).
+
+## Datos canónicos
+
+- `C:\Users\Rodrigo\Análisis RMG\Ciclovias\data\parquet\catastro_panel.parquet`
+  — **la tabla que manda**. Grano: tramo × corte. Para hablar de red hay que
+  filtrar **los dos** ejes, `corte` y `etapa`: sólo por `etapa` se suman las
+  cuatro versiones y salen 10.330,2 km en vez de los **2.827,7 km existentes** de
+  los 7.064,1 catastrados en el corte vigente (2026-07).
+- `C:\Users\Rodrigo\Análisis RMG\Ciclovias\data\analisis\` — las 17 salidas
+  del contrato. Granos: comuna, manzana censal, zona censal, tramo, componente
+  conexa, punto y ciudad-año EOD.
+- `C:\Users\Rodrigo\Análisis RMG\Ciclovias\data\MANIFIESTO.json` — la traza
+  de la descarga.
+
+**No sensible:** todo es agregado o infraestructura pública. No hay microdato
+individual y no debe introducirse.
+
+**Copias que NO se usan:** `data/raw/` (GeoJSON crudo, fuera de git, se
+regenera), `_work/payload.json` (intermedio, no se versiona) y la capa 1 del
+servicio de SECTRA, que no se suma a la vigente. Las trampas de cada fuente están
+demostradas en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md) y no se repiten acá.
+
+## Aprendizajes
+
+La bitácora completa, con fecha y en orden, está en **[Bitácora de
+aprendizajes](#bitácora-de-aprendizajes)**, en el manual de abajo. Todos son de
+la misma familia: **fallas que no lanzan error**. Los tres que más se repiten:
+
+- 2026-09-19 — **Un script que reescribe una tabla borra lo que otro le agregó.**
+  `analisis_zonas.py` regenera `zona_demanda` entera, y las tres columnas de
+  siniestros por zona sobrevivían de una corrida antigua: ningún script vigente
+  las producía. El indicador del visor se habría quedado sin dato sin fallar. Hoy
+  se calculan dentro del mismo script que escribe la tabla.
+- 2026-09-15 — **Un reporte externo puede acertar en la cifra y errar en la
+  causa.** Se arregla el mecanismo medido, no el propuesto. Ver el global.
+- 2026-09-06 — **El disparador que se deja escrito es el que paga.** Reconstruir
+  desde el microdato en vez de copiar un agregado ajeno dejó al banco inmune a
+  una corrección aguas arriba, y el snapshot antes/después lo demostró.
+
+## Cómo se ejecuta
+
+```bash
+cd "C:/Users/Rodrigo/Análisis RMG/Ciclovias"
+python -X utf8 scripts/descarga_arcgis.py    # ArcGIS REST -> data/raw + data/parquet
+python -X utf8 scripts/normaliza.py          # -> catastro_panel (falla si un CUT no es INE)
+# ... seis scripts de análisis y cruce ...
+python -X utf8 scripts/analisis_zonas.py     # agrega a zona censal
+python -X utf8 scripts/cruza_eod_zonas_censales.py
+python -X utf8 scripts/genera_catalogo.py && python -X utf8 scripts/genera_analisis.py
+python -X utf8 scripts/prepara_payload.py && python -X utf8 scripts/genera_visor.py
+```
+
+El pipeline completo, con sus dos dependencias de orden, está en **[Pipeline y
+fuentes, en detalle](#pipeline-y-fuentes-en-detalle)**. Al cerrar un bloque: subir
+`version.json`, commit y push; GitHub Pages sirve desde `main`.
+
+<!-- columna-vertebral: ultima_actualizacion=2026-09-19 commit=4811871 -->
+
+---
+
+
+## El proyecto en detalle
 Base de datos propia sobre infraestructura ciclista y uso de la bicicleta en
 Chile, construida desde las fuentes oficiales de SECTRA/MTT y MINVU y cruzada con
 Censo 2024, EOD y siniestralidad. Tiene **dos dimensiones**, con público y
@@ -14,9 +130,9 @@ producto distintos:
 
 El visor no tiene fuentes propias: consume lo que produce el banco.
 
-## Estado
+## Detalle del estado
 
-Última actividad: 2026-09-04 (`b307d51`).
+La fecha y el commit vigentes están en la ficha de arriba; acá va el detalle.
 
 ### banco
 
@@ -29,7 +145,7 @@ agregación a zona censal y el cruce de la EOD a esa zonificación.
 
 Documentado en [`FICHA_DOMINIO.md`](FICHA_DOMINIO.md), que es la fase 0 del
 dominio: inventario, cobertura medida año a año y unidad por unidad, nulos por
-campo y por región, once trampas demostradas ejecutando, contraste de
+campo y por región, trece trampas demostradas ejecutando, contraste de
 referencia sobre el Gran Concepción e indicadores ya calculados, separando los
 publicados y estables de las recetas re-ejecutables.
 
@@ -42,7 +158,7 @@ tramos de fecha desconocida.
 
 Publicado en <https://romedinag-tech.github.io/ciclovias/>, tres secciones
 —infraestructura, demanda, espacial— con tema claro/oscuro y paleta para
-daltonismo. Un solo `index.html` de 7,7 MB con el payload incrustado.
+daltonismo. Un solo `index.html` de 7,89 MB con el payload incrustado.
 
 El mapa trabaja sobre **zona censal** —la comuna resultó demasiado gruesa para
 ver diferencias dentro de una ciudad— con siete capas: red existente, franja de
@@ -53,8 +169,7 @@ cinco viajes en bicicleta encuestados detrás, que a escala nacional es el
 18,3 % de las zonas con EOD. Cada gráfico se amplía y se descarga como PNG, y el
 mapa se exporta como **figura de informe con su leyenda compuesta**.
 
-## Entradas y salidas
-
+## Pipeline y fuentes, en detalle
 ### banco
 
 Pipeline, en este orden:
@@ -86,9 +201,13 @@ se **generan** leyendo el dato en ese momento; editarlos a mano los desincroniza
 en silencio.
 
 Insumos externos, todos en **solo lectura**: `GIS Gran Concepción` (manzanas y
-zonas Censo 2024, NSE por zona, geometría comunal), `EODs` (EOD homologadas e
-`indice_eod.csv`), `dashboard accidentes` (siniestros con ciclista), `SERVEL/anclas`
-(directorio MINEDUC).
+zonas Censo 2024, NSE por zona, geometría comunal), `EODs` (EOD homologadas,
+`viajes_analiticos.parquet` e `indice_eod.csv`), `dashboard accidentes`
+(siniestros con ciclista), `SERVEL/anclas` (directorio MINEDUC) y
+`Hub Multidato\datos_oro\uso_suelo\comuna.geojson`, las **345 comunas INE**
+contra las que `normaliza.py` valida la llave comunal. Se usa ésa y no la capa
+del proyecto `elecciones`, que tiene 129 pares de comunas solapadas y duplica
+filas en un punto-en-polígono.
 
 Respaldo metodológico: `docs/benchmark_minvu_2018.md` y el PDF en `docs/fuentes/`.
 
@@ -98,15 +217,14 @@ Dos pasos, deliberadamente separados: el payload tarda minutos y la maqueta se
 itera decenas de veces.
 
 ```bash
-python -X utf8 scripts/prepara_payload.py      # -> _work/payload.json (7,2 MB)
+python -X utf8 scripts/prepara_payload.py      # -> _work/payload.json (7,78 MB)
 python -X utf8 scripts/genera_visor.py         # -> index.html
 ```
 
 Al cerrar un bloque: subir `version.json`, commit y push. GitHub Pages sirve
 desde `main`.
 
-## Datos canónicos
-
+## Los datos, en detalle
 ### banco
 
 `data/parquet/` es la fuente de trabajo y **va versionada**; `data/raw/` (GeoJSON
@@ -114,8 +232,14 @@ crudo) queda fuera de git y se regenera con el descargador. `data/MANIFIESTO.jso
 es la traza de la descarga: conteos, campos y problemas detectados.
 
 **Tabla canónica: `data/parquet/catastro_panel.parquet`.** Los cuatro cortes con
-campos homogeneizados. Para hablar de red hay que filtrar **los dos** ejes:
-`corte` —si no, se suman las cuatro versiones y salen 10.356,9 km de red
+campos homogeneizados. Desde el 2026-09-15 la llave comunal viene auditada:
+`cut_com_origen` dice si el CUT es el declarado por SECTRA o se resolvió por
+nombre, `cut_com_geo` es la comuna que contiene el tramo, `dist_comuna_llave_m`
+la distancia a la comuna de su llave y `cut_com_discrepa_geo` marca los 43 tramos
+a más de 500 m de ella —todos en cortes históricos, ninguno en el vigente—. Y
+`normaliza.py` **falla** si algún `cut_com` queda fuera de las 345 comunas INE:
+es un control, no una advertencia. Para hablar de red hay que filtrar **los dos** ejes:
+`corte` —si no, se suman las cuatro versiones y salen 10.330,2 km de red
 existente— y `etapa`. En el corte vigente (2026-07), de 7.064,1 km catastrados
 sólo **2.827,7 km** existen.
 
@@ -162,8 +286,7 @@ puntos por rol del catastro SII y no tiene concepto de capa lineal ni de
 componentes de red. Se reutiliza su **estándar gráfico** —leído en solo lectura—,
 no su motor.
 
-## Aprendizajes
-
+## Bitácora de aprendizajes
 Todos de la misma familia: **fallas que no lanzan error**.
 
 - `[banco]` 2026-09-04 — **ArcGIS responde `404`, no `414`, con una URL demasiado larga**, y el error se lee como «la capa no existe». Las consultas por bloque de OBJECTID van por **POST**.
@@ -362,26 +485,15 @@ Todos de la misma familia: **fallas que no lanzan error**.
   como cero, y el tablero la mostraba como dato. Se publica como sin dato. Es
   la misma familia que el `pct_bicicleta` en cero de Curico, y por eso conviene
   desconfiar del cero exacto antes que del valor raro.
-- `[banco]` 2026-09-15 — **Un reporte externo acierta en las cifras y puede
-  errar en el mecanismo; se arregla el mecanismo medido.** El Hub Multidato
-  reportó 26 tramos con `cut_com` en `00000`/`00001` y atribuyó la causa al
-  espacio duro de `comuna_txt`, que rompía «la normalización por nombre». Las
-  cifras eran exactas (46 y 54 filas con U+00A0), pero `normaliza.py` **no
-  hacía ningún cruce por nombre**: SECTRA entrega `CUT_COM = 0` y `zfill(5)` lo
-  volvía `00000`. Limpiar sólo el espacio no habría recuperado ni un tramo.
-  Además eran 28, no 26: dos CUT nulos no empiezan con `00` y el síntoma
-  buscado no los veía. Ahora el CUT fuera de las 345 comunas INE se resuelve
-  por nombre, se declara en `cut_com_origen`, y el script **falla** si queda
-  alguno —control probado inyectando una llave mala, porque un control que
-  nunca se vio fallar no está verificado—. Detalle en la ficha, trampas 1 a 1c.
-- `[banco]` 2026-09-15 — **Mi primer conteo de U+00A0 dio cero y eran 46, y
-  el motivo no era el que supuse.** La auditoría recorría «las columnas de
-  texto» filtrando `dtype == object or str(dtype).startswith('string')`, y en
-  pandas 3 el dtype de texto se llama `str`: la columna se **saltaba entera** y
-  el reporte decía «nada» sin error. La primera hipótesis —que el accesor
-  `.str.contains` fallaba con ese dtype— resultó falsa al probarla: da 46 igual
-  que iterar. Todo filtro por tipo de texto acepta `object`, `str` y `string`,
-  y un «no encontré nada» se contrasta contra un caso conocido antes de creerlo.
+- `[banco]` 2026-09-15 — Un reporte externo acertó en las cifras y erró en la
+  causa: los `cut_com` en `00000` los producía `CUT_COM = 0` de SECTRA, no el
+  espacio duro, y eran 28 y no 26. **Promovido al `CLAUDE.md` global.** Acá
+  quedó el control que falla si un CUT no es INE, probado inyectando una llave
+  mala; el detalle está en la ficha, trampas 1 a 1c.
+- `[banco]` 2026-09-15 — Un filtro `str(dtype).startswith('string')` se salta
+  la columna entera en pandas 3, que llama `str` a su dtype de texto: un conteo
+  de espacios duros dio 0 donde había 46. **Promovido al `CLAUDE.md` global**,
+  que es donde vale.
 - `[banco]` 2026-09-15 — **El snapshot antes/después separa lo propio de lo
   ajeno.** Re-ejecutar cobertura para verificar el arreglo de la llave trajo
   cambios que no eran de ese arreglo: `GIS Gran Concepción` regeneró
@@ -392,6 +504,22 @@ Todos de la misma familia: **fallas que no lanzan error**.
   con NSE de una fecha y manzanas de otra. **Pendiente decidir** si se
   incorpora esa actualización del NSE, re-ejecutando la cadena completa.
 
+- `[banco]` 2026-09-19 — **Un script que reescribe una tabla borra lo que otro
+  le agregó, y nadie se entera.** `analisis_zonas.py` regenera `zona_demanda`
+  completa. Las tres columnas de siniestros por zona —`sin_bici`, `sin_fall`,
+  `sin_grav`— sobrevivían de una corrida antigua y **ningún script vigente las
+  producía**: al re-ejecutar el pipeline desaparecieron, y el indicador
+  «Siniestros con ciclista» del visor se habría quedado en blanco sin lanzar un
+  error, porque el payload las lee con `getattr(..., None)`. Ahora se calculan
+  dentro del mismo script que escribe la tabla. Se validó contra el snapshot:
+  11.607 siniestros, 167 fallecidos y 2.004 graves, cero filas distintas. De
+  paso quedó a la vista que la columna `zona` de `siniestros_bici` dice
+  `URBANA`/`RURAL` y **no** es la zona censal: el cruce es espacial.
+- `[banco]` 2026-09-19 — **Incorporada la actualización del NSE** de
+  `GIS Gran Concepción` del 2026-09-15: 13.901 manzanas y 17 comunas (±0,1
+  punto, 0,4 en una) y 294 zonas censales en el visor. No movió la cobertura
+  —96,8 % de las manzanas, 4.561 de 4.577 zonas— ni ningún otro indicador.
+
 ### Archivo
 
 - `[visor]` 2026-09-04 — Una casilla de capa que nunca tiene datos es peor que no
@@ -399,4 +527,3 @@ Todos de la misma familia: **fallas que no lanzan error**.
   ninguna. Obsoleto desde el mismo día: **la capa se eliminó del visor**. El dato
   sigue en el banco y en la ficha de dominio.
 
-<!-- columna-vertebral: ultima_actualizacion=2026-09-04 commit=b307d51 -->

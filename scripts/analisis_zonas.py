@@ -73,6 +73,21 @@ def main():
     nse["zona"] = nse.zona.astype(str).str.strip()
     agg = agg.merge(nse, on="zona", how="left")
 
+    # --- siniestros con ciclista, agregados a la zona ----------------------- #
+    # Va en este script y no fuera porque es éste el que ESCRIBE
+    # `zona_demanda`: cuando las columnas se agregaban aparte, la siguiente
+    # corrida de este script las borraba y el indicador del visor se quedaba
+    # sin dato sin que nada fallara —así estuvo hasta el 2026-09-19—.
+    #
+    # El cruce es espacial y NO por la columna `zona` de `siniestros_bici`,
+    # que pese a su nombre vale 'URBANA'/'RURAL' y no es la zona censal.
+    sb = pd.read_parquet(AN / "siniestros_bici.parquet",
+                         columns=["id_accidente", "lat", "lon", "fallecidos",
+                                  "graves"])
+    sb = sb.dropna(subset=["lat", "lon"])
+    ptos = gpd.GeoDataFrame(sb, geometry=gpd.points_from_xy(sb.lon, sb.lat),
+                            crs="EPSG:4326")
+
     # --- geometria ---------------------------------------------------------- #
     z = pq.read_table(P_ZONAL).to_pandas()
     col_id = next((c for c in ["ID_ZONA", "id_zona", "ZONA", "COD_ZONA"]
@@ -86,6 +101,17 @@ def main():
             for b in z[col_geo]]
     gz = gpd.GeoDataFrame(z[["zona"]], geometry=geom, crs="EPSG:4326")
     gz = gz[gz.geometry.notna()].drop_duplicates("zona")
+
+    j = gpd.sjoin(ptos, gz[["zona", "geometry"]], how="inner", predicate="within")
+    j = j[~j.index.duplicated()]
+    sin = j.groupby("zona").agg(sin_bici=("id_accidente", "size"),
+                                sin_fall=("fallecidos", "sum"),
+                                sin_grav=("graves", "sum")).reset_index()
+    print(f"siniestros con ciclista ubicados en una zona censal: {len(j):,} "
+          f"de {len(ptos):,} georreferenciados")
+    agg = agg.merge(sin, on="zona", how="left")
+    for c in ["sin_bici", "sin_fall", "sin_grav"]:
+        agg[c] = agg[c].fillna(0).astype(int)
 
     out = gz.merge(agg, on="zona", how="inner")
     out = gpd.GeoDataFrame(out, geometry="geometry", crs="EPSG:4326")

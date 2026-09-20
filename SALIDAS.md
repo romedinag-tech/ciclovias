@@ -23,7 +23,7 @@
   - granularidad: comuna · llave: `cut_com`
   - indicadores: pob, bici, pct_pob_300, pct_bici_300, nse_score_pob
   - Cobertura poblacional agregada por comuna.
-- **`data/analisis/conectividad_comuna.parquet`** (parquet · 221 filas)
+- **`data/analisis/conectividad_comuna.parquet`** (parquet · 222 filas)
   - granularidad: comuna · llave: `cut_com`
   - indicadores: n_componentes, km_componente_mayor, pct_km_componente_mayor
   - Fragmentacion de la red: componentes conexas a tolerancia de 20 m.
@@ -39,6 +39,58 @@
   - granularidad: comuna / tramo / punto · llave: `cut_com`
   - indicadores: cobertura 300 m, km por etapa, fragmentacion, brecha NSE
   - Visor autocontenido publicado en https://romedinag-tech.github.io/ciclovias/
+- **`data/analisis/conectividad_sensibilidad.parquet`** (parquet · 6 filas)
+  - granularidad: tolerancia de unión · llave: `tolerancia_m`
+  - indicadores: tolerancia_m, n_componentes, km_componente_mayor
+  - Sensibilidad de la fragmentación a la tolerancia de unión. Se consulta ANTES de citar cualquier cifra de conectividad.
+- **`data/analisis/componentes.parquet`** (parquet · 733 filas)
+  - granularidad: componente conexa de red · llave: `componente`
+  - indicadores: km, n_tramos, comunas, comuna_principal
+  - Cada fragmento continuo de la red existente, con su kilometraje y cuántas comunas cruza.
+- **`data/analisis/tramo_componente.parquet`** (parquet · 1971 filas)
+  - granularidad: tramo · llave: `identifica; componente; cut_com`
+  - indicadores: componente, km
+  - A qué componente pertenece cada tramo. Necesario para contar componentes en un recorte SIN sobrecontar las que cruzan límites.
+- **`data/analisis/zona_demanda.parquet`** (parquet · 4577 filas)
+  - granularidad: zona censal · llave: `zona (CUT+distrito+zona)`
+  - indicadores: pob, bici, bici_pct, cob_pct, dist_m, nse_score, sin_bici, eod_bici_gen, eod_bici_atr, eod_n_gen, eod_n_atr
+  - Zona censal con demanda, cobertura, NSE, siniestros y viajes EOD, cada uno con su respaldo muestral. Es la unidad del mapa del visor.
+- **`data/analisis/demanda_comuna.parquet`** (parquet · 334 filas)
+  - granularidad: comuna · llave: `cut_com`
+  - indicadores: n_transporte_bicicleta, viajes_modo, bici_pct
+  - Personas que declaran la bicicleta como modo principal al trabajo o al estudio (Censo 2024).
+- **`data/analisis/siniestros_bici.parquet`** (parquet · 13357 filas)
+  - granularidad: punto (siniestro) · llave: `id_accidente; cut_com`
+  - indicadores: anio, lat, lon, fallecidos, graves, tipo_final, causa_final
+  - Siniestros con participación de bicicleta georreferenciados, 2020-2024 (CONASET).
+- **`data/analisis/demanda_eod_ciudad.parquet`** (parquet · 18 filas)
+  - granularidad: ciudad-año EOD · llave: `ciudad + anio`
+  - indicadores: bici_pct, caminata_exp, n_registros_bici, indice_consistente
+  - Reconstrucción validada de la bicicleta en cada EOD, separándola del grupo no motorizado.
+- **`data/analisis/demanda_eod_perfil.parquet`** (parquet · 402 filas)
+  - granularidad: ciudad x dimensión · llave: `ciudad + dim + valor`
+  - indicadores: viajes
+  - Viajes en bicicleta por propósito, período y hora.
+- **`data/analisis/demanda_eod_zona.parquet`** (parquet · 3639 filas)
+  - granularidad: zona EOD · llave: `ciudad + zona + lado`
+  - indicadores: viajes, n
+  - Viajes en bicicleta por zona EOD, con el número de viajes ENCUESTADOS detrás.
+- **`data/analisis/eod_cruces.parquet`** (parquet · 1552 filas)
+  - granularidad: ciudad x dimensión · llave: `ciudad + dim + valor`
+  - indicadores: bici, total, part
+  - Participación de la bicicleta por sexo, edad, quintil, propósito, período y hora x propósito.
+- **`data/analisis/eod_distancias.parquet`** (parquet · 297 filas)
+  - granularidad: ciudad x modo x tramo · llave: `ciudad + modo + tramo`
+  - indicadores: pct, acum
+  - Distribución de distancias del viaje, bicicleta contra todos los modos.
+- **`data/analisis/eod_distancias_resumen.parquet`** (parquet · 33 filas)
+  - granularidad: ciudad x modo · llave: `ciudad + modo`
+  - indicadores: dist_media_km, dist_mediana_km
+  - Media y mediana de distancia sin binear.
+- **`data/analisis/eod_kpi.parquet`** (parquet · 18 filas)
+  - granularidad: ciudad-año EOD · llave: `ciudad`
+  - indicadores: viajes, viajes_persona, pct_publico, pct_privado, cam_pct_propio, bici_pct_propio, tiempo_med_bici_min, dist_media_bici_km
+  - KPI por ciudad. La caminata y la bicicleta son reconstrucción propia: los campos del índice arrastran un defecto de homologación.
 
 ## Consulta de ejemplo
 
@@ -57,7 +109,7 @@ import pandas as pd; m = pd.read_parquet('Ciclovias/data/analisis/manzana_cobert
 
 ## Como regenerar
 
-`cd Ciclovias && python -X utf8 scripts/descarga_arcgis.py && python -X utf8 scripts/normaliza.py && python -X utf8 scripts/analisis_cobertura.py && python -X utf8 scripts/analisis_conectividad.py && python -X utf8 scripts/genera_catalogo.py && python -X utf8 scripts/genera_analisis.py && python -X utf8 scripts/genera_visor.py`
+`cd Ciclovias && python -X utf8 scripts/descarga_arcgis.py && python -X utf8 scripts/normaliza.py && python -X utf8 scripts/analisis_cobertura.py && python -X utf8 scripts/analisis_conectividad.py && python -X utf8 scripts/analisis_demanda.py && python -X utf8 scripts/analisis_eod_cruces.py && python -X utf8 scripts/analisis_eod_distancias.py && python -X utf8 scripts/analisis_eod_kpi.py && python -X utf8 scripts/analisis_zonas.py && python -X utf8 scripts/cruza_eod_zonas_censales.py && python -X utf8 scripts/genera_catalogo.py && python -X utf8 scripts/genera_analisis.py && python -X utf8 scripts/prepara_payload.py && python -X utf8 scripts/genera_visor.py`
 
 ## Docs clave
 
