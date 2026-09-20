@@ -1,0 +1,337 @@
+{
+"generado": "2026-09-19T21:32:18-03:00",
+"archivos": {
+".gitignore": [
+399,
+1789863995
+],
+"ANALISIS.md": [
+7759,
+1789863963
+],
+"CLAUDE.md": [
+32958,
+1789864104
+],
+"FICHA_DOMINIO.md": [
+32006,
+1789863995
+],
+"FUENTES.md": [
+15184,
+1789863964
+],
+"README.md": [
+4297,
+1788538174
+],
+"SALIDAS.md": [
+9298,
+1789864208
+],
+"_hub_encargos/2026-09-17_alta_en_el_orquestador.md": [
+3816,
+1789687451
+],
+"_hub_encargos/2026-09-18_correr_columna_vertebral_v2.md": [
+2995,
+1789747287
+],
+"_hub_encargos/LEEME.md": [
+1068,
+1789687451
+],
+"_work/descarga.log": [
+7862,
+1788535100
+],
+"_work/franja300.json": [
+237021,
+1788543727
+],
+"_work/payload.json": [
+7783464,
+1789863928
+],
+"_work/serve.log": [
+290,
+1788560173
+],
+"buzon/2026-09-19_eod_curico_no_caminata.md": [
+3570,
+1789864326
+],
+"data/MANIFIESTO.json": [
+25103,
+1788535100
+],
+"data/analisis/cobertura_comuna.parquet": [
+56376,
+1789863536
+],
+"data/analisis/componentes.parquet": [
+16422,
+1789506546
+],
+"data/analisis/conectividad_comuna.parquet": [
+14021,
+1789506546
+],
+"data/analisis/conectividad_sensibilidad.parquet": [
+4624,
+1789506439
+],
+"data/analisis/demanda_comuna.parquet": [
+29068,
+1788657510
+],
+"data/analisis/demanda_eod_ciudad.parquet": [
+14995,
+1788657511
+],
+"data/analisis/demanda_eod_perfil.parquet": [
+7515,
+1788657511
+],
+"data/analisis/demanda_eod_zona.parquet": [
+37396,
+1788657511
+],
+"data/analisis/eod_cruces.parquet": [
+31791,
+1788711120
+],
+"data/analisis/eod_distancias.parquet": [
+8196,
+1788711133
+],
+"data/analisis/eod_distancias_resumen.parquet": [
+5103,
+1788711133
+],
+"data/analisis/eod_kpi.parquet": [
+17567,
+1788711333
+],
+"data/analisis/equipamiento_cobertura.parquet": [
+818203,
+1789863537
+],
+"data/analisis/manzana_cobertura.parquet": [
+8733738,
+1789863534
+],
+"data/analisis/siniestros_bici.parquet": [
+387192,
+1788657519
+],
+"data/analisis/tramo_componente.parquet": [
+39528,
+1789506546
+],
+"data/analisis/zona_demanda.parquet": [
+19944983,
+1789863898
+],
+"data/parquet/catastro_comuna.parquet": [
+30707,
+1789506285
+],
+"data/parquet/catastro_panel.parquet": [
+10630083,
+1789506285
+],
+"data/parquet/minvu_ciclovias_medida_presidencial.parquet": [
+98480,
+1788535005
+],
+"data/parquet/minvu_ciclovias_otras_medidas.parquet": [
+143190,
+1788535007
+],
+"data/parquet/minvu_contadores.parquet": [
+45371,
+1788535002
+],
+"data/parquet/minvu_equipamientos.parquet": [
+134055,
+1788535013
+],
+"data/parquet/minvu_manzanas_poblacion_beneficiada.parquet": [
+22698573,
+1788535100
+],
+"data/parquet/sectra_ciclovias_nac_2024_09.parquet": [
+1420057,
+1788534053
+],
+"data/parquet/sectra_ciclovias_nac_2024_11.parquet": [
+1433727,
+1788534037
+],
+"data/parquet/sectra_ciclovias_nac_2025_07.parquet": [
+4194953,
+1788534021
+],
+"data/parquet/sectra_ciclovias_nac_2026_07.parquet": [
+4092865,
+1788533971
+],
+"data/parquet/sectra_ciclovias_nac_local_capa2.parquet": [
+4074534,
+1788533997
+],
+"data/parquet/sectra_icc_comunas.parquet": [
+85334,
+1788534357
+],
+"data/parquet/sectra_icc_comunas_mixtas.parquet": [
+37704,
+1788534564
+],
+"data/parquet/sectra_icc_comunas_planes.parquet": [
+79765,
+1788534988
+],
+"data/parquet/sectra_icc_comunas_rurales.parquet": [
+51682,
+1788534779
+],
+"data/parquet/sectra_icc_comunas_urbanas.parquet": [
+41770,
+1788534374
+],
+"data/parquet/sectra_icc_red_ciclov.parquet": [
+1056615,
+1788534998
+],
+"data/parquet/sectra_mediciones_antofagasta_talca.parquet": [
+22969,
+1788535001
+],
+"data/raw/minvu_ciclovias_medida_presidencial.geojson": [
+948459,
+1788535005
+],
+"data/raw/minvu_ciclovias_otras_medidas.geojson": [
+1246343,
+1788535007
+],
+"data/raw/minvu_contadores.geojson": [
+145971,
+1788535002
+],
+"data/raw/minvu_equipamientos.geojson": [
+1786178,
+1788535013
+],
+"data/raw/minvu_manzanas_poblacion_beneficiada.geojson": [
+82483039,
+1788535099
+],
+"data/raw/sectra_ciclovias_nac_2024_09.geojson": [
+5851532,
+1788534053
+],
+"data/raw/sectra_ciclovias_nac_2024_11.geojson": [
+5951074,
+1788534037
+],
+"data/raw/sectra_ciclovias_nac_2025_07.geojson": [
+14632214,
+1788534021
+],
+"data/raw/sectra_ciclovias_nac_2026_07.geojson": [
+15338267,
+1788533971
+],
+"data/raw/sectra_ciclovias_nac_local_capa2.geojson": [
+14817297,
+1788533997
+],
+"data/raw/sectra_icc_red_ciclov.geojson": [
+3825783,
+1788534998
+],
+"data/raw/sectra_mediciones_antofagasta_talca.geojson": [
+42785,
+1788535001
+],
+"docs/benchmark_minvu_2018.md": [
+2772,
+1788541116
+],
+"docs/fuentes/minvu_2018_analisis_contadores.pdf": [
+264130,
+1788535100
+],
+"index.html": [
+7892082,
+1789863929
+],
+"scripts/analisis_cobertura.py": [
+11222,
+1788537168
+],
+"scripts/analisis_conectividad.py": [
+7503,
+1788539897
+],
+"scripts/analisis_demanda.py": [
+17800,
+1788657402
+],
+"scripts/analisis_eod_cruces.py": [
+6370,
+1788559554
+],
+"scripts/analisis_eod_distancias.py": [
+8554,
+1788546586
+],
+"scripts/analisis_eod_kpi.py": [
+7444,
+1788711324
+],
+"scripts/analisis_zonas.py": [
+6627,
+1789863815
+],
+"scripts/cruza_eod_zonas_censales.py": [
+9552,
+1788657501
+],
+"scripts/descarga_arcgis.py": [
+11837,
+1788533908
+],
+"scripts/fuentes.py": [
+10084,
+1788533926
+],
+"scripts/genera_analisis.py": [
+13040,
+1788537495
+],
+"scripts/genera_catalogo.py": [
+4913,
+1788532590
+],
+"scripts/genera_visor.py": [
+110746,
+1788658023
+],
+"scripts/normaliza.py": [
+12624,
+1789506280
+],
+"scripts/prepara_payload.py": [
+25165,
+1788711402
+],
+"version.json": [
+126,
+1789864236
+]
+}
+}

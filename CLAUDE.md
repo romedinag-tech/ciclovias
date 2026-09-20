@@ -112,7 +112,7 @@ El pipeline completo, con sus dos dependencias de orden, está en **[Pipeline y
 fuentes, en detalle](#pipeline-y-fuentes-en-detalle)**. Al cerrar un bloque: subir
 `version.json`, commit y push; GitHub Pages sirve desde `main`.
 
-<!-- columna-vertebral: ultima_actualizacion=2026-09-19 commit=4811871 -->
+<!-- columna-vertebral: ultima_actualizacion=2026-09-19 commit=5c61951 -->
 
 ---
 
